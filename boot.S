@@ -7,18 +7,21 @@ _start:
     leaw msg, %si #Load msg address to si register
     cld #Clear load flags
 
-    xor %bh, %bh #Set page 0 for int 10h
-
-write_loop:
-    lodsb #Load *(%si) to %al (and increment)
-    orb %al, %al #Zero is end of string
-    jz loop
-    mov $0x0e, %ah #Teletype mode
-    int $0x10
-    jmp write_loop
+    call write_loop
 
 loop:
     jmp loop
+
+write_loop:
+    xor %bh, %bh #Set page 0 for int 10h
+    lodsb #Load *(%si) to %al (and increment)
+    orb %al, %al #Zero is end of string
+    jz write_done
+    mov $0x0e, %ah #Teletype mode
+    int $0x10
+    jmp write_loop
+write_done:
+    ret
 
 msg:
     .asciz "Hello world!"
