@@ -1,0 +1,66 @@
+# BOOTLOADER DIRECTORY MAKEFILE - v0.1
+#
+# Not ready to be used as Makefile, it's used by the configure script to build
+# the final Makefile, that will be used to build the bootloader
+#
+# If you haven't already, run the configure script in the top level directory!
+#
+# In the final makefile, run 'make help' for a list of targets
+#
+#
+# 2023 Diogo Gomes
+
+include ../config.mk
+
+SCRIPTVERSION:=0.1
+
+ifneq ($(MADE_CONFIG),true)
+$(error We're not properly configured, run ./configure!!)
+endif
+
+################################################
+
+.PHONY: all install
+
+all: stage0.bin
+
+# Where we install to (in general, sysroot)
+DESTDIR?=$(SYSROOT)/bootloader
+
+$(DESTDIR):
+	$(Q)mkdir -p $(DESTDIR)
+
+install: all $(DESTDIR) $(DESTDIR)/stage0.bin
+$(DESTDIR)/stage0.bin: all
+	$(call cmd,cp)
+	$(Q)cp stage0.bin $(DESTDIR)/stage0.bin
+
+
+# Include the list of sources
+include $(ROOT_SRCDIR)/bootloader/src.mk
+
+# Generate list of objs
+BOOTLDROBJS:=$(patsubst %.S,%.o,$(BOOTLDRSRC))
+
+# Correct sources for source directory
+BOOTLDRSRC:=$(addprefix $(ROOT_SRCDIR)/bootloader,$(BOOTLDRSRC))
+
+################################################
+
+%.o: $(ROOT_SRCDIR)/bootloader/%.S
+	$(call cmd,as)
+	$(Q)$(CC) -MD -c $< -o $@ $(CFLAGS)
+
+stage0.bin: stage0.o
+	$(call cmd,ld)
+	$(Q)$(LD) --oformat binary -o stage0.bin -Ttext 0x7C00 stage0.o
+
+clean:
+	-$(Q)rm -f $(shell find . -name '*.bin')
+	-$(Q)rm -f $(shell find . -name '*.o')
+	-$(Q)rm -f $(shell find . -name '*.d')
+	@echo '   Clean done!'
+
+# Allows printing a make variable in command line as: make print-VAR
+# Good for debugging
+print-%  : ; @echo $* = $($*)

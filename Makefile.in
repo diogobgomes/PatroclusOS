@@ -1,0 +1,83 @@
+# TOP LEVEL MAKEFILE - v0.1
+#
+# Not ready to be used as Makefile, it's used by the configure script to build
+# the final Makefile, that will be used to build the entire project
+#
+# If you haven't already, run the configure script in the top level directory!
+#
+# In the final makefile, run 'make help' for a list of targets.
+#
+#
+# 2023 Diogo Gomes
+
+override SHELL:=/bin/sh
+include config.mk
+
+SCRIPTVERSION:=0.1
+
+ifneq ($(MADE_CONFIG),true)
+$(error We're not properly configured, run ./configure!!)
+endif
+
+# TODO
+# add cleandep target
+
+# Subdirectories
+SUBDIRS:=bootloader
+#HEADER_SUBDIR:=include
+
+BUILDSUBDIRS:=$(SUBDIRS:%=build-%)
+INSTALLSUBDIRS:=$(SUBDIRS:%=install-%)
+CLEANSUBDIRS:=$(SUBDIRS:%=clean-%)
+
+
+# Final kernel bin
+#TODO we want either floppy or disk image, deal with it
+
+.PHONY: all clean install qemu install-headers distclean docs
+
+all: $(BUILDSUBDIRS) $(SYSROOT)
+$(BUILDSUBDIRS):
+	@$(MAKE) -C $(@:build-%=%)
+
+# Create the sysroot subdirectory
+$(SYSROOT):
+	$(Q)mkdir -p $(SYSROOT)
+
+# Install
+install: all $(INSTALLSUBDIRS) $(SYSROOT)
+$(INSTALLSUBDIRS):
+	@$(MAKE) -C $(@:install-%=%) install
+
+boot.bin: install $(SYSROOT)/bootloader/stage0.bin
+	$(call cmd,cp)
+	$(Q)cp $(SYSROOT)/bootloader/stage0.bin boot.bin
+
+.PHONY: subdirs $(BUILDSUBDIRS)
+.PHONY: subdirs $(INSTALLSUBDIRS)
+
+
+qemu: boot.bin
+	@echo 'Starting qemu for $(TARGETARCH)'
+	$(Q)qemu-system-$(TARGETARCH) -hda boot.bin
+
+clean: $(CLEANSUBDIRS)
+	-$(Q)rm -f $(shell find . -name '*.bin')
+	-$(Q)rm -f $(shell find . -name '*.o')
+	-$(Q)rm -f $(shell find . -name '*.d')
+	-$(Q)rm -fr $(SYSROOT)
+	@echo '   Clean done!'
+
+$(CLEANSUBDIRS):
+	@$(MAKE) -C $(@:clean-%=%) clean
+
+.PHONY: subdirs $(CLEANSUBDIRS)
+
+distclean: clean
+	-$(Q)rm -f ${addsuffix /Makefile,${SUBDIRS}}
+	-$(Q)rm -f config.mk
+	-$(Q)rm -f Makefile
+
+# Allows printing a make variable in command line as: make print-VAR
+# Good for debugging
+print-%  : ; @echo $* = $($*)

@@ -1,0 +1,61 @@
+# CONFIGURE FILE FOR MAKEFILES
+#
+# Used to configure the output of makefiles - to be included by configure script,
+# not usefull on it's own
+#
+#
+# 2023 Diogo Gomes
+#
+# Beautify output - inspired by linux kernel makefiles
+# ---------------------------------------------------------------------------
+#
+# Controlled by the V=0|1 command line option
+# 0 - Quiet
+# 1 - Verbose
+# 
+# Whenever we write a command, we should write (for example, a CC command):
+#  	
+#       $(call cmd,cc)
+#		$(Q)$(CC) $@
+#
+# A simple variant is to prefix commands with $(Q) - that's useful
+# for commands that shall be hidden in non-verbose mode.
+#
+#       $(Q)ln $@ :<
+#
+# If KBUILD_VERBOSE equals 0 then the above command will be hidden.
+# If KBUILD_VERBOSE equals 1 then the above command is displayed.
+#
+# Set KBUILD_VERBOSE flag based on V=x command line flag
+
+ifeq ("$(origin V)", "command line")
+  KBUILD_VERBOSE := $(V)
+endif
+ifndef KBUILD_VERBOSE
+  KBUILD_VERBOSE := 0
+endif
+
+ifeq ($(KBUILD_VERBOSE),1)
+	Q :=
+else
+	Q := @
+endif
+
+# Defines what version of output we get
+echo-cmd = $(if $(cmd_$(1)),\
+    @echo -e '  $(call escsq,$(cmd_$(1)))';)
+
+# Printing commands
+cmd = $(echo-cmd)
+
+# Escapes single quotes so that sh plays nice
+squote := \'
+escsq = $(subst $(squote),'\$(squote)',$1)
+
+# Setting our cmd-XXX names
+cmd_cc = '  CC \\t $@'
+cmd_cxx = '  CXX \\t $@'
+cmd_ar = '  AR \\t $@'
+cmd_as = '  AS \\t $@'
+cmd_ld = '  LD \\t $@'
+cmd_cp = '  CP \\t $@'

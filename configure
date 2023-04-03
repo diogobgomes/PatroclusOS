@@ -1,0 +1,512 @@
+#!/bin/sh
+# CONFIGURE SCRIPT FOR BUILD SYSTEM - v0.1
+#
+# Script to configure our build environment (sets some variables, lets us define
+# some parameters about our build). Run this before any makefiles (trying to run
+# them before configuring will hopefully throw an error, but even if it doesn't,
+# the build WILL FAIL).
+#
+# Preferebly, we would do everything from the makefiles, but unfortunately that
+# approach proved to be too cumbersome, so we have this small helper script.
+#
+#
+# 2023 Diogo Gomes
+
+scriptversion="0.1"
+rootsrcdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+# ------------------------------------------------------------------------------
+# Versions
+# ------------------------------------------------------------------------------
+projectname="PatroclusOS"
+version="0.1"
+release="pre-alpha"
+
+# TODO: version, plus help
+# BUG replace makefile on invocation
+# FIXME makefiles files written
+
+# ------------------------------------------------------------------------------
+# Functions
+# Some helper functions
+# ------------------------------------------------------------------------------
+
+function help {
+    printf 'Not done yet\n'
+}
+
+function version {
+    printf 'PatroclusOS configure version %s\n' ${scriptversion}
+    printf '\nWritten by Diogo Gomes, 2023\n'
+}
+
+function target_arch {
+    if echo "$1" | grep -Eq 'i[[:digit:]]86-'; then
+        echo i386;
+    else
+        echo "$1" | grep -Eo '^[[:alnum:]_]*';
+    fi
+}
+
+function log_header {
+    echo ""
+    echo ""
+    echo "###################################################"
+    echo ""
+    echo "$1"
+    echo ""
+    echo "###################################################"
+    echo ""
+}
+
+# ------------------------------------------------------------------------------
+# User-defined Variables
+# ------------------------------------------------------------------------------
+
+for arg in "$@"; do
+    case "$arg" in
+    -V)
+        version
+        exit 0
+        ;;
+    --version)
+        version
+        exit 0
+        ;;
+    --toolprefix=*)
+        toolprefix=`echo $arg | sed 's/--toolprefix=//'`
+        ;;
+    --toolarchprefix=*)
+        toolarchprefix=`echo $arg | sed 's/--toolarchprefix=//'`
+        ;;
+    --toolarchdir=*)
+        toolarchdir=`echo $arg | sed 's/--toolarchdir=//'`
+        ;;
+    --ar=*)
+        ar=`echo $arg | sed 's/--ar=//'`
+        ;;
+    --as=*)
+        as=`echo $arg | sed 's/--as=//'`
+        ;;
+    --cc=*)
+        cc=`echo $arg | sed 's/--cc=//'`
+        ;;
+    --cxx=*)
+        cxx=`echo $arg | sed 's/--cxx=//'`
+        ;;
+    --isotool=*)
+        isotool=`echo $arg | sed 's/--isotool=//'`
+        ;;
+    --isochecktool=*)
+        isochecktool=`echo $arg | sed 's/--isochecktool=//'`
+        ;;
+    --sysroot=*)
+        sysroot=`echo $arg | sed 's/--sysroot=//'`
+        ;;
+
+    --python=*)
+        python=`echo $arg | sed 's/--python=//'`
+        ;;
+
+#    --prefix=*)
+#        prefix=`echo $arg | sed 's/--prefix=//'`
+#        ;;
+#    --execprefix=*)
+#        execprefix=`echo $arg | sed 's/--execprefix=//'`
+#        ;;
+#    --bootdir=*)
+#        bootdir=`echo $arg | sed 's/--bootdir=//'`
+#        ;;
+#    --libdir=*)
+#        libdir=`echo $arg | sed 's/--libdir=//'`
+#        ;;
+#    --includedir=*)
+#        includedir=`echo $arg | sed 's/--includedir=//'`
+#        ;;
+#
+#    --with-libc)
+#        withlibc="libc.a"
+#        ;;
+#    --without-libc)
+#        withlibc=""
+#        ;;
+
+    --cflags=*)
+        cflags=`echo $arg | sed 's/--cflags=//'`
+        ;;
+    --cxxflags=*)
+        cxxflags=`echo $arg | sed 's/--cxxflags=//'`
+        ;;
+    --ldflags=*)
+        ldflags=`echo $arg | sed 's/--ldflags=//'`
+        ;;
+    --libs=*)
+        libs=`echo $arg | sed 's/--libs=//'`
+        ;;
+
+    --log-file=*)
+        configlog=`echo $arg | sed 's/--log-file=//'`
+        ;;
+
+    --enable-debug)
+        debugsym=true;;
+    --disable-debug)
+        debugsym=false;; # linux configure command log file
+
+    --help)
+        help
+        exit 0
+        ;;
+    -h)
+        help
+        exit 0
+        ;;
+    esac
+done
+
+# ------------------------------------------------------------------------------
+# Defaults
+# These are the default values for our build variables
+# ------------------------------------------------------------------------------
+
+target=i686-elf
+targetarch=$(target_arch ${target})
+
+# Directories
+toolprefix=${toolprefix:-${HOME}/opt/}
+toolarchprefix=${toolarchprefix:-${target}-cross/bin/}
+toolarchdir=${toolarchdir:-${toolprefix}/${toolarchprefix}}
+ar=${ar:-${toolarchdir}/${target}-ar}
+as=${as:-${toolarchdir}/${target}-as}
+cc=${cc:-${toolarchdir}/${target}-gcc}
+cxx=${cxx:-${toolarchdir}/${target}-g++}
+ld=${ld:-${toolarchdir}/${target}-ld}
+#isotool=${isotool:-grub-mkrescue}
+isochecktool=${isochecktool:-grub2-file}
+sysroot=${sysroot:-$(pwd)/sysroot}
+
+# Target directories
+prefix=${prefix:-/usr}
+execprefix=${execprefix:-${prefix}}
+bootdir=${bootdir:-/boot}
+libdir=${libdir:-${execprefix}/lib}
+includedir=${includedir:-${prefix}/include}
+
+# Tools
+python=${python:-/bin/python3}
+
+#Targets
+#withlibc=${withlibc:-""} # Default because we're nowhere near ready for libc
+#withlibk="libk.a"
+
+# Tool flags
+cflags=${cflags:-"-O2 -ffreestanding"}
+cxxflags=${cxxflags:-"-O2"}
+ldflags=${ldflags:-""}
+libs=${libs:-""}
+
+debugsym=${debugsym:-true}
+
+# ------------------------------------------------------------------------------
+# Configured variables
+# Some necessary variables not defined by configure invocation
+# ------------------------------------------------------------------------------
+
+subdirs='bootloader'
+
+# Origin files
+srcmakefiles="${rootsrcdir}/Makefile.in ${rootsrcdir}/bootloader/Makefile.in"
+srcmakeconfig=${rootsrcdir}/config/make/config.mk.in
+srcoutputconfig=${rootsrcdir}/config/make/output.mk.in
+
+srcmakefiles=($srcmakefiles)
+
+# Destination makefiles
+destmakefiles="Makefile bootloader/Makefile"
+destmakeconfig="config.mk"
+
+destmakefiles=($destmakefiles)
+
+# ------------------------------------------------------------------------------
+# Checking whether we have everything we expect to build the project
+# Then generate a config.log
+# ------------------------------------------------------------------------------
+
+if [ -z $configlog ]; then
+    configlog="config.log"
+fi
+
+if ! [ -w $configlog ] && [ -f $configlog ]; then
+    printf 'Error: Could not open log file: %s\n' ${configlog}
+    printf 'Aborting\n'
+    exit 3
+fi
+
+echo "CONFIGURATION LOG" > ${configlog}
+echo "" >> ${configlog}
+echo "Generated by configure version ${scriptversion}" >> ${configlog}
+echo "" >> ${configlog}
+echo "INVOCATION = $0 $@" >> ${configlog}
+echo "DATE = $(date)" >> ${configlog}
+echo "" >> ${configlog}
+echo "PLATFORM---------" >> ${configlog}
+echo "hostname = $(hostname)" | tee -a ${configlog}
+echo "Machine Hardware (uname -m) = $(uname -m)" | tee -a ${configlog}
+echo "Kernel Release (uname -r) = $(uname -r)" | tee -a ${configlog}
+# Fixed a bug!
+echo "Kernel Name (uname -s) = $(uname -s)" | tee -a ${configlog}
+echo "Kernel Version (uname -v) = $(uname -v)" | tee -a ${configlog}
+echo "" >> ${configlog}
+echo "subdirs = ${subdirs}" >> ${configlog}
+echo "" >> ${configlog}
+
+echo "Using cross build tool directory ${toolarchdir}" | tee -a ${configlog}
+
+printf 'Checking whether CC compiler is present ...'
+log_header CC >> ${configlog}
+if ${cc} -v &>> ${configlog}; then
+    printf ' yes\n'
+else
+    printf ' no\n'
+    echo 'Error: CC compiler not found' | tee -a ${configlog}
+    exit 4
+fi
+
+printf 'Checking whether CXX compiler is present ...'
+log_header CXX >> ${configlog}
+if ${cxx} -v &>> ${configlog}; then
+    printf ' yes\n'
+else
+    printf ' no\n'
+    echo 'Error: CXX compiler not found' | tee -a ${configlog}
+    exit 4
+fi
+
+printf 'Checking whether AR is present ...'
+log_header AR >> ${configlog}
+if ${ar} --version &>> ${configlog}; then
+    printf ' yes\n'
+else
+    printf ' no\n'
+    echo 'Error: AR not found' | tee -a ${configlog}
+    exit 4
+fi
+
+printf 'Checking whether AS is present ...'
+log_header AS >> ${configlog}
+if ${ar} --version &>> ${configlog}; then
+    printf ' yes\n'
+else
+    printf ' no\n'
+    echo 'Error: AS not found' | tee -a ${configlog}
+    exit 4
+fi
+
+printf 'Checking whether xorriso is present ...'
+log_header xorriso >> ${configlog}
+if xorriso --version &>> ${configlog}; then
+    printf ' yes\n'
+else
+    printf ' no\n'
+    echo 'Error: xorriso not found' | tee -a ${configlog}
+    exit 4
+fi
+
+printf 'Checking whether ISOTOOL-check is present ...'
+log_header ISOTOOLCheck >> ${configlog}
+if which ${isochecktool} >> /dev/null; then
+    printf ' yes\n'
+else
+    printf ' no\n'
+    echo 'Error: ISOTOOL-check not found' | tee -a ${configlog}
+    exit 4
+fi
+
+printf 'Checking whether qemu-system-%s is present ...' ${targetarch}
+log_header qemu-system-${targetarch} >> ${configlog}
+if qemu-system-${targetarch} --version &>> ${configlog}; then
+    printf ' yes\n'
+else
+    printf ' no\n'
+    printf 'Error: qemu-system-%s not found' ${targetarch} | tee -a ${configlog}
+    exit 4
+fi
+
+printf 'Checking whether doxygen is present ...'
+log_header DOXYGEN >> ${configlog}
+if doxygen -v &>> ${configlog}; then
+    printf ' yes\n'
+    build_docs=yes
+else
+    printf ' no\n'
+    build_docs=no
+    echo "Warning: doxygen not found, we'll not be able to build the documentation"\
+     | tee -a ${configlog}
+    #exit 4
+fi
+
+printf 'Checking make version ...'
+log_header MAKE >> ${configlog}
+if make --version &>> ${configlog}; then
+    printf ' done\n'
+else
+    printf ' no\n'
+    echo 'Error: make not found' | tee -a ${configlog}
+    exit 4
+fi
+
+# ------------------------------------------------------------------------------
+# Generating the build files
+# ------------------------------------------------------------------------------
+
+# First step is to generate the file structure
+for folder in $subdirs; do
+    mkdir -p $folder
+done
+
+if ! [ -w $destmakeconfig ] && [ -f $destmakeconfig ]; then
+    printf 'Error: Could not open ${destmakeconfig}\n'
+    printf 'Aborting\n'
+    exit 2
+fi
+
+for name in ${destmakefiles}; do
+    if ! [ -w $name ] && [ -f $name ]; then
+        printf 'Error: Could not open ${name}\n'
+        printf 'Aborting\n'
+        exit 2
+    fi
+done
+
+echo "Generating ${destmakeconfig} ..."
+
+# Header of the file
+echo "# MAIN CONFIGURATION FILE FOR MAKEFILE" > ${destmakeconfig}
+echo "#" >> ${destmakeconfig}
+echo "# Autogenerated by configure version ${scriptversion} on $(date)" >> ${destmakeconfig}
+echo "# CHANGE IT AT YOUR OWN RISK!" >> ${destmakeconfig}
+echo "override SHELL:=/bin/sh" >> ${destmakeconfig}
+echo "unexport" >> ${destmakeconfig}
+
+# Writing configs to file
+echo "TARGET:=${target}" >> ${destmakeconfig}
+echo "TARGETARCH:=${targetarch}" >> ${destmakeconfig}
+echo "ROOT_SRCDIR:=${rootsrcdir}" >> ${destmakeconfig}
+echo "AR=${ar}" >> ${destmakeconfig}
+echo "AS=${as}" >> ${destmakeconfig}
+echo "CC=${cc}" >> ${destmakeconfig}
+echo "CXX=${cxx}" >> ${destmakeconfig}
+echo "LD=${ld}" >> ${destmakeconfig}
+echo "ISOTOOL:=${isotool}" >> ${destmakeconfig}
+echo "ISOCHECKTOOL:=${isochecktool}" >> ${destmakeconfig}
+echo "SYSROOT:=${sysroot}" >> ${destmakeconfig}
+echo "PREFIX?=${prefix}" >> ${destmakeconfig}
+echo "EXEC_PREFIX?=${execprefix}" >> ${destmakeconfig}
+echo "BOOTDIR?=${bootdir}" >> ${destmakeconfig}
+echo "LIBDIR?=${libdir}" >> ${destmakeconfig}
+echo "INCLUDEDIR?=${includedir}" >> ${destmakeconfig}
+echo "LIBC-BIN:=${withlibc}" >> ${destmakeconfig}
+echo "LIBK-BIN:=${withlibk}" >> ${destmakeconfig}
+echo "LIBBINARIES:=${withlibk} ${withlibc}" >> ${destmakeconfig}
+if $debugsym; then
+    echo "CFLAGS:= ${cflags} -g" >> ${destmakeconfig}
+    echo "CXXFLAGS:= ${cxxflags} -g" >> ${destmakeconfig}
+else
+    echo "CFLAGS:= ${cflags}" >> ${destmakeconfig}
+    echo "CXXFLAGS:= ${cxxflags}" >> ${destmakeconfig}
+fi
+echo "LDFLAGS:= ${ldflags}" >> ${destmakeconfig}
+echo "LIBS:= ${libs}" >> ${destmakeconfig}
+
+echo "SUBDIRS:= ${subdirs}" >> ${destmakeconfig}
+
+echo "PROJECT_NAME:= ${projectname}" >> ${destmakeconfig}
+echo "VERSION:= ${version}" >> ${destmakeconfig}
+echo "RELEASE:= ${release}" >> ${destmakeconfig}
+echo "CODENAME:= ${codename}" >> ${destmakeconfig}
+
+echo "MADE_CONFIG:=true" >> ${destmakeconfig}
+
+echo "MAKECONFIG:=${destmakeconfig}" >> ${destmakeconfig}
+
+# Writing end of autofile comment
+echo "# ------------------------------------------------------------------------------" >> ${destmakeconfig}
+echo "# End of autoconfigured file" >> ${destmakeconfig}
+echo "# ------------------------------------------------------------------------------" >> ${destmakeconfig}
+
+# Writing the rest of the destmakeconfig
+echo "" >> ${destmakeconfig}
+${python} ${rootsrcdir}/build-scripts/comment-cleanup.py ${srcmakeconfig} ${destmakeconfig}
+echo "" >> ${destmakeconfig}
+${python} ${rootsrcdir}/build-scripts/comment-cleanup.py ${srcoutputconfig} ${destmakeconfig} # Some configurations for the make output
+
+# Writing all makefiles
+for index in "${!destmakefiles[@]}"; do
+    echo "override SHELL:=/bin/sh" > ${destmakefiles[index]}
+    ${python} ${rootsrcdir}/build-scripts/comment-cleanup.py "${srcmakefiles[index]}" "${destmakefiles[index]}"
+    echo "Generating ${destmakefiles[index]} ..."
+done
+
+# Writing make variables to config.log
+printf '\n\n\nWRITTEN FILES----------\n' >> ${configlog}
+for index in "${!destmakefiles[@]}"; do
+    echo ${destmakefiles[index]} >> ${configlog}
+done
+printf '\n\n\nMAKE VARIABLES---------\n' >> ${configlog}
+echo "override SHELL:=/bin/sh" >> ${configlog}
+echo "TARGET:=${target}" >> ${configlog}
+echo "TARGETARCH:=${targetarch}" >> ${configlog}
+echo "ROOT_SRCDIR:=${rootsrcdir}" >> ${configlog}
+echo "AR=${ar}" >> ${configlog}
+echo "AS=${as}" >> ${configlog}
+echo "CC=${cc}" >> ${configlog}
+echo "CXX=${cxx}" >> ${configlog}
+echo "LD=${ls}" >> ${configlog}
+echo "ISOTOOL:=${isotool}" >> ${configlog}
+echo "ISOCHECKTOOL:=${isochecktool}" >> ${configlog}
+echo "SYSROOT:=${sysroot}" >> ${configlog}
+echo "PREFIX?=${prefix}" >> ${configlog}
+echo "EXEC_PREFIX?=${execprefix}" >> ${configlog}
+echo "BOOTDIR?=${bootdir}" >> ${configlog}
+echo "LIBDIR?=${libdir}" >> ${configlog}
+echo "INCLUDEDIR?=${includedir}" >> ${configlog}
+echo "LIBC-BIN:=${withlibc}" >> ${configlog}
+echo "LIBK-BIN:=${withlibk}" >> ${configlog}
+echo "LIBBINARIES:=${withlibk} ${withlibc}" >> ${configlog}
+if $debugsym; then
+    echo "CFLAGS:= ${cflags} -g" >> ${configlog}
+    echo "CXXFLAGS:= ${cxxflags} -g" >> ${configlog}
+else
+    echo "CFLAGS:= ${cflags}" >> ${configlog}
+    echo "CXXFLAGS:= ${cxxflags}" >> ${configlog}
+fi
+echo "LDFLAGS:= ${ldflags}" >> ${configlog}
+echo "LIBS:= ${libs}" >> ${configlog}
+echo "SUBDIRS:= ${subdirs}" >> ${configlog}
+echo "PROJECT_NAME:= ${projectname}" >> ${configlog}
+echo "VERSION:= ${version}" >> ${configlog}
+echo "RELEASE:= ${release}" >> ${configlog}
+echo "CODENAME:= ${codename}" >> ${configlog}
+echo "MADE_CONFIG:=true" >> ${configlog}
+
+# ------------------------------------------------------------------------------
+# Generate the Doxyfile from Doxyfile.in
+# ------------------------------------------------------------------------------
+#echo "" >> ${configlog}
+#echo "" >> ${configlog}
+#log_header Doxyfile >> ${configlog}
+#echo "Writing Doxyfile to ${rootsrcdir}/Doxygen..." | tee -a ${configlog}
+## Generate doxyfile
+#sed -e "s,@Doxygen_Output_Directory,${rootsrcdir}/docs," -e \
+#"s,@Doxygen_Input_Directory,${rootsrcdir}/kernel ${rootsrcdir}/lib \
+#${rootsrcdir}/include," < ${rootsrcdir}/docs/Doxyfile.in \
+#> ${rootsrcdir}/docs/Doxyfile
+## Configure the makefile if we can't use doxygen
+#${python} ${rootsrcdir}/build-scripts/doxygen-cleanup.py\
+# ${rootsrcdir}/Makefile ${build_docs} &> /dev/null
+#if [ $? -ne 0 ]; then
+#    echo "Error: Error when modifying the Makefile target docs" | tee -a ${configlog}
+#    exit 5
+#fi
+
+echo 'Configuration complete, type make to build.'

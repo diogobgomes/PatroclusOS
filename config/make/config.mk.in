@@ -1,0 +1,38 @@
+# CONFIGURE FILE FOR MAKEFILES - v0.1
+#
+# Not usefull on it's own, to be used by configure script to generate config.mk.
+#
+# In principle, you should only interact with the configure script, mess with
+# this file at your own risk
+#
+#
+# 2023 Diogo Gomes
+
+# Configure the cross-compiler to user the desired system-root
+CC+= --sysroot=$(SYSROOT)
+CXX+= --sysroot=$(SYSROOT)
+
+# Work around that the -elf gcc targets doesn't have a system include directory
+#because it was configured with --without-headers rather than --with-sysroot
+CC+= $(shell if echo "$(TARGET)" | grep -Eq -- '-elf($$|-)'; then \
+	echo " -isystem=$(INCLUDEDIR)"; \
+fi)
+
+CXX+= $(shell if echo "$(TARGET)" | grep -Eq -- '-elf($$|-)'; then \
+	echo " -isystem=$(INCLUDEDIR)"; \
+fi)
+
+# Mandatory flags
+CWARNINGS := -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-align \
+            -Wwrite-strings -Wmissing-prototypes -Wmissing-declarations \
+            -Wredundant-decls -Wnested-externs -Winline -Wno-long-long \
+            -Wuninitialized -Wconversion -Wstrict-prototypes
+CXXWARNINGS:=-pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
+	 					-Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
+						-Winit-self -Wlogical-op -Wmissing-declarations \
+						-Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
+						-Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion \
+						-Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 \
+						-Wswitch-default -Wundef -Winline
+CFLAGS:=$(CFLAGS) $(CWARNINGS)
+CXXFLAGS:=$(CXXFLAGS) $(CXXWARNINGS)
