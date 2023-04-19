@@ -61,3 +61,12 @@ The rest you can just read, it's not that hard.
 For booting, use qemu: ``qemu-system-i386 -hda boot.bin``
 
 This is a hello world done just in assembly, basically.
+
+## Chapter 2 - Bootloaders
+We now want to start writing a bootloader. What is it? We want something that can prepare the computer, read our OS (or a necessary part of it) from the disk, and then jump to it. We also want a couple more things, but those are not important right now.
+
+First thing, though. We want our bootloader to do all this, but as before, the BIOS only loads the first 512 bytes from the disk (called the MBR, master boot record). Even worse, on a HDD, some of it will be occupied by partition tables, useless information, etc. We end up with only around 440 bytes of space. That's not a lot of space.
+
+One way out is with a 2-stage bootloader: the first, **stage0**, only needs to load the second, **stage1**, that can now be much bigger, and that can then load the rest of the kernel. We'll actually also have a small **Multiboot** stage, that just implements the Multiboot protocol.
+
+To see more about the design, visit the [design doc](bootloader/README.md).

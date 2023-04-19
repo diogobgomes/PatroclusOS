@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # CONFIGURE SCRIPT FOR BUILD SYSTEM - v0.1
 #
 # Script to configure our build environment (sets some variables, lets us define
@@ -13,6 +13,19 @@
 # 2023 Diogo Gomes
 
 scriptversion="0.1"
+
+set -e
+# keep track of the last executed command
+trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
+# echo an error message before exiting
+trap cleanup ERR
+
+cleanup() {
+    error_code=$?
+    echo "\"${last_command}\" command failed with exit code $?. Configuration not complete, cannot build"
+    exit $((error_code))
+}
+
 rootsrcdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # ------------------------------------------------------------------------------
@@ -104,6 +117,14 @@ for arg in "$@"; do
         sysroot=`echo $arg | sed 's/--sysroot=//'`
         ;;
 
+    --diskimage=*)
+        diskimage=`echo $arg | sed 's/--diskimage=//'`
+        ;;
+
+    --diskimage_loopback=*)
+        diskimage_loopback=`echo $arg | sed 's/--diskimage_loopback=//'`
+        ;;
+
     --python=*)
         python=`echo $arg | sed 's/--python=//'`
         ;;
@@ -184,6 +205,8 @@ ld=${ld:-${toolarchdir}/${target}-ld}
 #isotool=${isotool:-grub-mkrescue}
 isochecktool=${isochecktool:-grub2-file}
 sysroot=${sysroot:-$(pwd)/sysroot}
+diskimage=${diskimage:-$(pwd)/diskimage.dd}
+diskimage_loopback=${diskimage_loopback:-/dev/loop0}
 
 # Target directories
 prefix=${prefix:-/usr}
@@ -399,7 +422,10 @@ echo "CXX=${cxx}" >> ${destmakeconfig}
 echo "LD=${ld}" >> ${destmakeconfig}
 echo "ISOTOOL:=${isotool}" >> ${destmakeconfig}
 echo "ISOCHECKTOOL:=${isochecktool}" >> ${destmakeconfig}
+echo "PYTHON:=${python}" >> ${destmakeconfig}
 echo "SYSROOT:=${sysroot}" >> ${destmakeconfig}
+echo "DISKIMAGE:=${diskimage}" >> ${destmakeconfig}
+echo "DISKIMAGE-LOOPBACK:=${diskimage_loopback}" >> ${destmakeconfig}
 echo "PREFIX?=${prefix}" >> ${destmakeconfig}
 echo "EXEC_PREFIX?=${execprefix}" >> ${destmakeconfig}
 echo "BOOTDIR?=${bootdir}" >> ${destmakeconfig}
@@ -464,7 +490,10 @@ echo "CXX=${cxx}" >> ${configlog}
 echo "LD=${ls}" >> ${configlog}
 echo "ISOTOOL:=${isotool}" >> ${configlog}
 echo "ISOCHECKTOOL:=${isochecktool}" >> ${configlog}
+echo "PYTHON:=${python}" >> ${configlog}
 echo "SYSROOT:=${sysroot}" >> ${configlog}
+echo "DISKIMAGE:=${diskimage}" >> ${configlog}
+echo "DISKIMAGE-LOOPBACK:=${diskimage_loopback}" >> ${configlog}
 echo "PREFIX?=${prefix}" >> ${configlog}
 echo "EXEC_PREFIX?=${execprefix}" >> ${configlog}
 echo "BOOTDIR?=${bootdir}" >> ${configlog}
@@ -488,6 +517,30 @@ echo "VERSION:= ${version}" >> ${configlog}
 echo "RELEASE:= ${release}" >> ${configlog}
 echo "CODENAME:= ${codename}" >> ${configlog}
 echo "MADE_CONFIG:=true" >> ${configlog}
+
+
+# ------------------------------------------------------------------------------
+# Create the diskimage, if it doesn't already exist
+# ------------------------------------------------------------------------------
+printf '\n\nDISKIMAGE---------------\n' >> ${configlog}
+if [ -f "$diskimage" ]; then
+    echo "Diskimage ${diskimage} detected, skipping generating it..." | tee -a ${configlog}
+else
+    echo "Diskimage ${diskimage} not detected, generating it..." | tee -a ${configlog}
+    echo "dd:" >> ${configlog}
+    dd if=/dev/zero of=${diskimage} bs=1048576 count=12 &>> ${configlog}
+    echo "Super user permissions are needed for this step"
+    echo "sfdisk:" >> ${configlog}
+    sudo sfdisk ${diskimage} < ${rootsrcdir}/config/diskimage.sfdisk &>> ${configlog}
+    echo "losetup:" >> ${configlog}
+    sudo losetup -o $((2048*512)) ${diskimage_loopback} ${diskimage} &>> ${configlog} 
+    echo "mkfs.fat:" >> ${configlog}
+    sudo mkfs.fat -F 32 ${diskimage_loopback} &>> ${configlog}
+    sudo losetup -d ${diskimage_loopback}
+    echo "Diskimage ${diskimage} generated!" | tee -a ${configlog}
+fi
+    
+
 
 # ------------------------------------------------------------------------------
 # Generate the Doxyfile from Doxyfile.in

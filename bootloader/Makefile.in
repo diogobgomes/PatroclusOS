@@ -30,10 +30,14 @@ DESTDIR?=$(SYSROOT)/bootloader
 $(DESTDIR):
 	$(Q)mkdir -p $(DESTDIR)
 
-install: all $(DESTDIR) $(DESTDIR)/stage0.bin
+install: all $(DESTDIR) $(DESTDIR)/stage0.bin $(DESTDIR)/stage1.bin
 $(DESTDIR)/stage0.bin: all
 	$(call cmd,cp)
 	$(Q)cp stage0.bin $(DESTDIR)/stage0.bin
+# Dummy stage1
+$(DESTDIR)/stage1.bin: all
+	$(call cmd,cp)
+	$(Q)cp $(ROOT_SRCDIR)/bootloader/stage1 $(DESTDIR)/stage1.bin
 
 
 # Include the list of sources
@@ -53,7 +57,7 @@ BOOTLDRSRC:=$(addprefix $(ROOT_SRCDIR)/bootloader,$(BOOTLDRSRC))
 
 stage0.bin: stage0.o
 	$(call cmd,ld)
-	$(Q)$(LD) --oformat binary -o stage0.bin -Ttext 0x7C00 stage0.o
+	$(Q)$(LD) --oformat binary -o stage0.bin -Ttext 0x0500 stage0.o
 
 clean:
 	-$(Q)rm -f $(shell find . -name '*.bin')

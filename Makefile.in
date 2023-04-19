@@ -19,16 +19,26 @@ ifneq ($(MADE_CONFIG),true)
 $(error We're not properly configured, run ./configure!!)
 endif
 
+
 # TODO
 # add cleandep target
 
 # Subdirectories
 SUBDIRS:=bootloader
 #HEADER_SUBDIR:=include
+BMOUNTDIR:=bootloader_mount
 
 BUILDSUBDIRS:=$(SUBDIRS:%=build-%)
 INSTALLSUBDIRS:=$(SUBDIRS:%=install-%)
 CLEANSUBDIRS:=$(SUBDIRS:%=clean-%)
+
+# Make sure everything is mounted
+ifneq ($(shell mountpoint -q $(BMOUNTDIR) && echo "yes"),yes)
+$(info Bootloader filesystem not mounted, attempting to mount it)
+ifneq ($(shell $(ROOT_SRCDIR)/build-scripts/mountdirs.sh ${BMOUNTDIR} ${DISKIMAGE-LOOPBACK} ${DISKIMAGE} && echo "yes"),yes)
+$(error Couldn't correctly mount the filesystem)
+endif
+endif
 
 
 # Final kernel bin
@@ -49,17 +59,29 @@ install: all $(INSTALLSUBDIRS) $(SYSROOT)
 $(INSTALLSUBDIRS):
 	@$(MAKE) -C $(@:install-%=%) install
 
-boot.bin: install $(SYSROOT)/bootloader/stage0.bin
-	$(call cmd,cp)
-	$(Q)cp $(SYSROOT)/bootloader/stage0.bin boot.bin
+
+# Copy to the diskimage
+diskimage: $(BMOUNTDIR)/stage1.bin
+	dd if=$(SYSROOT)/bootloader/stage0.bin of=$(DISKIMAGE) conv=notrunc bs=440 count=1
+	$(ROOT_SRCDIR)/build-scripts/injectFAT.sh $(ROOT_SRCDIR) $(PYTHON) $(BMOUNTDIR)/stage1.bin 2048 $(DISKIMAGE)
+
+
+$(BMOUNTDIR)/stage1.bin: install
+	$(call cmd, ls)
+	$(Q)cp $(SYSROOT)/bootloader/stage1.bin $(BMOUNTDIR)/stage1.bin
+
+
+#boot.bin: install $(SYSROOT)/bootloader/stage0.bin
+#	$(call cmd,cp)
+#	$(Q)cp $(SYSROOT)/bootloader/stage0.bin boot.bin
 
 .PHONY: subdirs $(BUILDSUBDIRS)
 .PHONY: subdirs $(INSTALLSUBDIRS)
 
 
-qemu: boot.bin
+qemu: diskimage
 	@echo 'Starting qemu for $(TARGETARCH)'
-	$(Q)qemu-system-$(TARGETARCH) -hda boot.bin
+	$(Q)qemu-system-$(TARGETARCH) -drive file=$(DISKIMAGE),format=raw
 
 clean: $(CLEANSUBDIRS)
 	-$(Q)rm -f $(shell find . -name '*.bin')
