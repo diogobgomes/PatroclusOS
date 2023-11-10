@@ -29,7 +29,7 @@ _start:
 
 low_memory:
     # We must now set the stack pointer to a valid thing (but don't care about it)
-    mov $0x7C00, %ax
+    mov $0x7B00, %ax
     mov %ax, %sp
     mov %ax, %bp
 
@@ -105,7 +105,7 @@ bootable_found:
     mov (%di), %cx
 
     # Area we're going to read to
-    mov $0x8000, %ax
+    mov $0x7C00, %ax
     mov %ax, %fs
 
 read_stage1_loop:
@@ -141,16 +141,19 @@ read_stage1_loop:
 
 read_stage1_complete:
     # Check for the stage1 signature
-    #mov $0x8000, %di
-    #movw (%di), %ax
-    #movw $0x5926, %bx
-    #leaw bootr_signature_notFound_error_msg, %si
-    #cmp %ax, %bx
-    #jne error
+    mov $0x7C00, %di
+    movw (%di), %ax
+    movw $0x5926, %bx
+    leaw bootr_signature_notFound_error_msg, %si
+    cmp %ax, %bx
+    jne error
 
     # Everything is fine, let's jump to stage1!
-    #jmp $0x8002
+    # Only thing we provide is %dl with the drive number
+    mov $0x7C02, %eax
+    jmp %eax
     
+    # Should never get here, actually
     cli
     hlt
 

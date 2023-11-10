@@ -123,13 +123,13 @@ Stage0 must accomplish the following tasks:
 4) [x] Set the stack pointer (see more [here](#set-the-stack-pointer))
 5) [x] Enable interrupts
 6) [x] Reset the floppy disk controller (HDD in our case): see more about the whole reading thing [here](#interacting-with-disks-floppies-etc)
-7) [ ] Read stage1 sectors from the disk
-8) [ ] Jump to stage1 code
+7) [x] Read stage1 sectors from the disk
+8) [x] Jump to stage1 code
 
 If anything fails, we must:
-1) [ ] Warn the user of a failure
-2) [ ] Disable interrupts
-3) [ ] Halt
+1) [x] Warn the user of a failure
+2) [x] Disable interrupts
+3) [x] Halt
 
 TODO: describe jump to low memory
 
@@ -159,19 +159,61 @@ Now, we need to read something. This is done with ``int 13h, %ah=0x02``. We need
 ## Stage1
 Stage1 must accomplish the following tasks:
 
-1) Set the stack pointer
-2) Query the BIOS for the size of lower memory
-3) Query the BIOS for the size of upper memory
-4) Read kernel sectors from the disk into lower memory
-5) Enable the A20 gate
-6) Disable interrupts
-7) Load the Global Descriptor Table
-8) Switch to protected mode
-9) Invoke the Multiboot loader
-10) Begin execution of the kernel
+1) [x] Set the stack pointer (we're setting it to 0x7BFE, right bellow us)
+2) [x] Query the BIOS for the size of lower memory (store it in memory just after executable)
+3) [x] Query the BIOS for the size of upper memory (store it just after lower memory)
+4) [x] Read kernel sectors from the disk into lower memory
+5) [x] Enable the A20 gate
+6) [x] Disable interrupts
+7) [x] Load the Global Descriptor Table
+8) [x] Switch to protected mode
+9) [ ] Invoke the Multiboot loader
+10) [ ] Begin execution of the kernel
 
 If anything fails, we must:
-1) Warn the user of a failure
-2) Disable interrupts
-3) Halt
+1) [x] Warn the user of a failure
+2) [x] Disable interrupts
+3) [x] Halt
 
+### Query the BIOS
+For querying the BIOS, we're using two different interrupts: ``int 12h`` for the size of the lower memory (all memory below 1 MiB, that we can use in Real mode) and ``int 15h``, ``%eax = $0xE820``, that gives us a map of high memory.
+
+The results are stored in memory
+
+### Read kernel from the disk
+For reading the kernel from the disk, we're doing a basic user interface, that allows the user to choose one of the partitions to try and load
+
+### GDT
+There's a lot to know about the GDT, but for our purposes, what we really want is the most basic GDT possible (for info, check OSDev.org). We're storing it at the DAP memory location, because, by this point, we shouldn't really need more reading from disk, so it's free. For now, we need 3 entries, then: 
+
+- The null entry, always required. We could leave it just free, but on suggestion from OSDev, and because why not, we store the memory location there;
+- A 4 GB, 32-bit, DPL-0, "non-conforming" type, code segment descriptor;
+- A 4 GB, 32-bit, DPL-0, "expand-up" type, data segment descriptor
+
+Each entry is actually pretty complicated, so here's a table trying to explain it:
+| 0 -- 15 | 16 -- 31 |
+| ------- | -------- |
+| **Limit** | **Base** |
+| 0 -- 15 |  0 -- 15 |
+| _16 bits_ | _16 bits_ |
+
+| 32 -- 39 | 40 -- 47 | 48 -- 51 | 52 -- 55 | 56 -- 63 |
+| -------- | -------- | -------- | -------- | -------- |
+| **Base** | **Access Byte** | **Limit** | **Flags** | **Base** |
+| 16 -- 23 | 0 -- 7 | 16 -- 19 | 0 -- 3 | 24 -- 31 |
+| _8 bits_ | _8 bits_ | _4 bits_ | _4 bits_ | _8 bits_ |
+
+For our case, limit is _0xfffff_, base is _0x00000_
+For code, access byte is _0x9A_ (present, ring-0, code segment, non-conforming, read-write, not accessed), flags is _0xC_ (page granularity, 32-bit, not long mode)
+For data, access byte is _0x92_ (same, but for data segment), flags is _0xC_
+
+## Multiboot loader
+The multiboot loader must accomplish the following tasks:
+
+1) Locate the Multiboot header in the preloaded kernel image
+2) Verify the Multiboot header and flags
+3) Load the kernel image into high memory
+4) Write the Multiboot information structure
+5) Return success or failure to boot1
+
+The multiboot loader can be (and will be) written in C, since we're in protected mode

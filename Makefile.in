@@ -24,21 +24,24 @@ endif
 # add cleandep target
 
 # Subdirectories
-SUBDIRS:=bootloader
+SUBDIRS:=bootloader kernel
 #HEADER_SUBDIR:=include
 BMOUNTDIR:=bootloader_mount
+KMOUNTDIR:=kernel_mount
 
 BUILDSUBDIRS:=$(SUBDIRS:%=build-%)
 INSTALLSUBDIRS:=$(SUBDIRS:%=install-%)
 CLEANSUBDIRS:=$(SUBDIRS:%=clean-%)
 
 # Make sure everything is mounted
-ifneq ($(shell mountpoint -q $(BMOUNTDIR) && echo "yes"),yes)
-$(info Bootloader filesystem not mounted, attempting to mount it)
-ifneq ($(shell $(ROOT_SRCDIR)/build-scripts/mountdirs.sh ${BMOUNTDIR} ${DISKIMAGE-LOOPBACK} ${DISKIMAGE} && echo "yes"),yes)
-$(error Couldn't correctly mount the filesystem)
+ifneq ($(shell mountpoint -q $(BMOUNTDIR) && mountpoint -q $(KMOUNTDIR) && echo "yes"),yes)
+$(info Filesystems not mounted, attempting to mount them)
+ifneq ($(shell $(ROOT_SRCDIR)/build-scripts/mountdirs.sh ${BMOUNTDIR} ${KMOUNTDIR} ${DISKIMAGE-LOOPBACK} ${DISKIMAGE} && echo "yes"),yes)
+$(error Couldn't correctly mount the filesystems)
 endif
 endif
+
+
 
 
 # Final kernel bin
@@ -61,14 +64,19 @@ $(INSTALLSUBDIRS):
 
 
 # Copy to the diskimage
-diskimage: $(BMOUNTDIR)/stage1.bin
+diskimage: $(BMOUNTDIR)/stage1.bin $(KMOUNTDIR)/kernel.bin
 	dd if=$(SYSROOT)/bootloader/stage0.bin of=$(DISKIMAGE) conv=notrunc bs=440 count=1
 	$(ROOT_SRCDIR)/build-scripts/injectFAT.sh $(ROOT_SRCDIR) $(PYTHON) $(BMOUNTDIR)/stage1.bin 2048 $(DISKIMAGE)
-
+	$(ROOT_SRCDIR)/build-scripts/injectFAT.sh $(ROOT_SRCDIR) $(PYTHON) $(KMOUNTDIR)/kernel.bin 4096 $(DISKIMAGE)
+	sync
 
 $(BMOUNTDIR)/stage1.bin: install
 	$(call cmd, ls)
 	$(Q)cp $(SYSROOT)/bootloader/stage1.bin $(BMOUNTDIR)/stage1.bin
+
+$(KMOUNTDIR)/kernel.bin: install
+	$(call cmd, ls)
+	$(Q)cp $(SYSROOT)/kernel/kernel.bin $(KMOUNTDIR)/kernel.bin
 
 
 #boot.bin: install $(SYSROOT)/bootloader/stage0.bin
@@ -95,7 +103,14 @@ $(CLEANSUBDIRS):
 
 .PHONY: subdirs $(CLEANSUBDIRS)
 
+# FIXME remove loopback devices and mounts
 distclean: clean
+ifeq ($(shell mountpoint -q $(BMOUNTDIR) && mountpoint -q $(KMOUNTDIR) && echo "yes"),yes)
+	@echo 'Attempting to remove loopbacks'
+	sudo umount ${BMOUNTDIR}
+	sudo umount ${KMOUNTDIR}
+	sudo losetup -d ${DISKIMAGE-LOOPBACK}
+endif
 	-$(Q)rm -f ${addsuffix /Makefile,${SUBDIRS}}
 	-$(Q)rm -f config.mk
 	-$(Q)rm -f Makefile

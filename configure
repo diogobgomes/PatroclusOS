@@ -235,17 +235,17 @@ debugsym=${debugsym:-true}
 # Some necessary variables not defined by configure invocation
 # ------------------------------------------------------------------------------
 
-subdirs='bootloader'
+subdirs='bootloader kernel'
 
 # Origin files
-srcmakefiles="${rootsrcdir}/Makefile.in ${rootsrcdir}/bootloader/Makefile.in"
+srcmakefiles="${rootsrcdir}/Makefile.in ${rootsrcdir}/bootloader/Makefile.in ${rootsrcdir}/kernel/Makefile.in"
 srcmakeconfig=${rootsrcdir}/config/make/config.mk.in
 srcoutputconfig=${rootsrcdir}/config/make/output.mk.in
 
 srcmakefiles=($srcmakefiles)
 
 # Destination makefiles
-destmakefiles="Makefile bootloader/Makefile"
+destmakefiles="Makefile bootloader/Makefile kernel/Makefile"
 destmakeconfig="config.mk"
 
 destmakefiles=($destmakefiles)
@@ -534,6 +534,11 @@ else
     sudo sfdisk ${diskimage} < ${rootsrcdir}/config/diskimage.sfdisk &>> ${configlog}
     echo "losetup:" >> ${configlog}
     sudo losetup -o $((2048*512)) ${diskimage_loopback} ${diskimage} &>> ${configlog} 
+    echo "mkfs.fat:" >> ${configlog}
+    sudo mkfs.fat -F 32 ${diskimage_loopback} &>> ${configlog}
+    sudo losetup -d ${diskimage_loopback}
+    #
+    sudo losetup -o $((4096*512)) ${diskimage_loopback} ${diskimage} &>> ${configlog}
     echo "mkfs.fat:" >> ${configlog}
     sudo mkfs.fat -F 32 ${diskimage_loopback} &>> ${configlog}
     sudo losetup -d ${diskimage_loopback}
