@@ -34,7 +34,7 @@ install: all $(DESTDIR) $(DESTDIR)/stage0.bin $(DESTDIR)/stage1.bin
 $(DESTDIR)/stage0.bin: all
 	$(call cmd,cp)
 	$(Q)cp stage0.bin $(DESTDIR)/stage0.bin
-# Dummy stage1
+
 $(DESTDIR)/stage1.bin: all
 	$(call cmd,cp)
 	$(Q)cp stage1.bin $(DESTDIR)/stage1.bin
@@ -49,19 +49,31 @@ BOOTLDROBJS:=$(patsubst %.S,%.o,$(BOOTLDRSRC))
 # Correct sources for source directory
 BOOTLDRSRC:=$(addprefix $(ROOT_SRCDIR)/bootloader,$(BOOTLDRSRC))
 
+# Memory locations
+STAGE0_ADDR:=0x0500
+
 ################################################
 
 %.o: $(ROOT_SRCDIR)/bootloader/%.S
 	$(call cmd,as)
 	$(Q)$(CC) -MD -c $< -o $@ $(CFLAGS)
 
+%.o: $(ROOT_SRCDIR)/bootloader/%.c
+	$(call cmd,cc)
+	$(Q)$(CC) -MD -c $< -o $@ $(CFLAGS)
+
 stage0.bin: stage0.o
 	$(call cmd,ld)
-	$(Q)$(LD) --oformat binary -o stage0.bin -Ttext 0x0500 stage0.o
+	$(Q)$(LD) --oformat binary -o stage0.bin -Ttext $(STAGE0_ADDR) stage0.o
 
-stage1.bin: stage1.o
+stage1.bin: stage1.o multiboot-loader.o
 	$(call cmd,ld)
-	$(Q)$(LD) --oformat binary -o stage1.bin -Ttext 0x7C00 stage1.o
+	$(Q)$(LD) -o stage1.bin -T ${ROOT_SRCDIR}/bootloader/stage1-linker.ld stage1.o multiboot-loader.o
+# Check stage1.bin size, must be less than 16kB
+ifeq ($(shell test $$(ls -l stage1.bin | awk '{print $$5}') -gt 16384 && echo yes),yes)
+	$(error The size of stage1.bin is slightly worrisome in terms of memory management)
+endif
+
 
 clean:
 	-$(Q)rm -f $(shell find . -name '*.bin')

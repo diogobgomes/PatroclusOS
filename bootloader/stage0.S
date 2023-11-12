@@ -1,10 +1,19 @@
-# STAGE0
-#
-# Small assembly stub that sits in the MBR, and whose purpose it is
+# @file stage0.S
+# @author Diogo Gomes
+# @brief Small assembly stub that sits in the MBR, and whose purpose it is
 # to set up some basic things, load stage1, and jump to it
-# 
-#
-# 2023 Diogo Gomes
+# @version 0.1
+# @date 2023-09-01
+
+# Set constants
+_initial_mbr_address = 0x7C00
+_final_mbr_address = 0x0500
+_stack_pointer = 0x7B00
+_dap_memory_location = 0x1000
+_fat_inject_magic = 0x3141
+_fat_inject_magic_offset = 0x5A
+_stage1_magic = 0x5926
+_stage1_location = 0x3000
 
 .code16
 .global _start
@@ -21,15 +30,15 @@ _start:
 
     # We want now to copy ourselves to as low memory as possible
     mov $0x0100, %cx # 256 words in MBR
-    mov $0x7C00, %si # Current MBR address
-    mov $0x0500, %di # New MBR address: want to cut it finely
+    mov $_initial_mbr_address, %si # Current MBR address
+    mov $_final_mbr_address, %di # New MBR address: want to cut it finely
     rep movsw # Copy the MBR to the new address
 
     ljmp $0, $low_memory # Long jump to next line, setting %CS to 0
 
 low_memory:
     # We must now set the stack pointer to a valid thing (but don't care about it)
-    mov $0x7B00, %ax
+    mov $_stack_pointer, %ax
     mov %ax, %sp
     mov %ax, %bp
 
@@ -39,7 +48,7 @@ low_memory:
     # Now we need to read and interpret the MBR partition table
     # Fortunately, it was loaded into memory with us
     # First thing, try to find some bootable partition table
-    mov $(0x0500+0x1be), %bx # first partition table entry offset
+    mov $(_final_mbr_address+0x1be), %bx # first partition table entry offset
     mov $0b10000000, %cl
     mov $0, %dh # Counter
 boot_loop:
@@ -79,10 +88,9 @@ bootable_found:
 
     # TODO add check for extensions
     
-    
     # READ
-    mov $0x1000, %di
-    mov $(0x1000 + 0x0010), %ax
+    mov $_dap_memory_location, %di
+    mov $(_dap_memory_location + 0x0010), %ax
     mov %ax, %fs
     mov $1, %cx
     mov %bx, %si
@@ -92,9 +100,9 @@ bootable_found:
 
 
     # Check for the Boot Record stage1 signature
-    mov $(0x1010 + 0x05A), %di
+    mov $(_dap_memory_location + 0x10 + _fat_inject_magic_offset), %di
     movw (%di), %ax
-    movw $0x3141, %bx
+    movw $_fat_inject_magic, %bx
     leaw bootr_signature_notFound_error_msg, %si
     cmp %ax, %bx
     jne error
@@ -105,7 +113,7 @@ bootable_found:
     mov (%di), %cx
 
     # Area we're going to read to
-    mov $0x7C00, %ax
+    mov $_stage1_location, %ax
     mov %ax, %fs
 
 read_stage1_loop:
@@ -117,7 +125,7 @@ read_stage1_loop:
     add $0x08, %di
     mov (%di), %cx # Sectors
     mov %di, %ax
-    mov $0x1000, %di
+    mov $_dap_memory_location, %di
     push %ax
     call lba_read
 
@@ -141,17 +149,17 @@ read_stage1_loop:
 
 read_stage1_complete:
     # Check for the stage1 signature
-    mov $0x7C00, %di
+    mov $_stage1_location, %di
     movw (%di), %ax
-    movw $0x5926, %bx
+    movw $_stage1_magic, %bx
     leaw bootr_signature_notFound_error_msg, %si
     cmp %ax, %bx
     jne error
 
     # Everything is fine, let's jump to stage1!
     # Only thing we provide is %dl with the drive number
-    mov $0x7C02, %eax
-    jmp %eax
+    mov $(_stage1_location + 0x2), %eax
+    jmp *%eax
     
     # Should never get here, actually
     cli
@@ -204,7 +212,6 @@ write_loop:
 write_done:
     ret
 
-# TODO make this use stack, elegantly
 error:
     call write_loop
 

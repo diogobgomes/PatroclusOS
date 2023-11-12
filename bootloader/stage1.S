@@ -7,21 +7,33 @@
 #
 # 2023 Diogo Gomes
 
+
+
 .code16
 .global _start
 
+# Set constants
+_stack_pointer = 0x6FFE
+_stage0_memory_location = 0x0500
+_info_store_location = 0x7000
+_dap_memory_location = 0x1000
+_fat_inject_magic = 0x3141
+_fat_inject_magic_offset = 0x5A
+_stage1_magic = 0x5926
+_stage1_location = 0x3000
+
+
+_int_15h_eax_const = 0xE820
+_int_15h_edx_const = 0x534D4150
+
 # Stage1 signature
+.section .sign
 .word 0x5926
 
-# Set constants
-_stack_pointer = 0x7BFE
-_memory_source_location = 0x0500
-_working_store_location = _prog_size + 0x7C00
-_dap_memory_location = 0x1000
-
+.text
 _start:
     # Set up the stack pointer (should already be set, but want to make sure)
-    # We're setting it up right bellow us, at 7BFE
+    # We're setting it up right bellow us, at 30FE
     mov $_stack_pointer, %ax
     mov %ax, %sp
     mov %ax, %bp
@@ -31,11 +43,10 @@ _start:
 
     leaw entring_stage1_msg, %si
     call write_loop
-    
 
     # Now the fun begins. Must start querying BIOS for sizes
     # We'll use stage0's memory address to store the results
-    mov $_working_store_location, %di # Is the destination
+    mov $_info_store_location, %di # Is the destination
 
     # First the lower memory
     clc # Clear carry flag
@@ -47,18 +58,19 @@ _start:
 # Now the upper memory, using int 15h, %eax = 0xE820
 # Need to use a loop to do it
 # This trashes all registers
+# Int 15h stores results in %di
 get_upper_memory:
     #Loop setup
-    add $4, %di # Save two bytes for upper mem entry count
+    add $4, %di # Save four bytes for upper mem entry count
     xor %bp, %bp # Use %bp as a counter, reset at the end
     mov $0, %ebx
-    mov $0x534D4150, %edx
-    mov $0xE820, %eax
-    mov $24, %ecx
+    mov $_int_15h_edx_const, %edx
+    mov $_int_15h_eax_const, %eax
+    mov $24, %ecx # Read 24 bytes at a time
     int $0x15
     leaw int15_initial_error_msg, %si
     jc error
-    mov $0x534D4150, %edx
+    mov $_int_15h_edx_const, %edx
     cmp %eax, %edx
     jne error
     leaw int15_short_error_msg, %si
@@ -67,9 +79,9 @@ get_upper_memory:
 
 .get_upper_memory_loop:
     add $24, %di
-    mov $0xE820, %eax
+    mov $_int_15h_eax_const, %eax
     mov $24, %ecx
-    mov $0x534D4150, %edx # Some BIOSs may trash this, if they won't we do
+    mov $_int_15h_edx_const, %edx # Some BIOSs may trash this, if they won't we do
     int $0x15
     jc get_upper_memory_done # Carry set means "end of list"
 
@@ -93,8 +105,7 @@ get_upper_memory:
     jnz .get_upper_memory_loop
 
 get_upper_memory_done:
-    #mov (_memory_store_location + 2), %di
-    mov (_working_store_location + 2), %si
+    mov (_info_store_location + 2), %si
     mov %bp, (%si)
     clc
     add $24, %di # This is the next free space
@@ -125,8 +136,8 @@ start_reading_kernel:
 
 
     # First up, do the boot_loop jump from stage0, but with finding non-bootable
-    mov $(_memory_source_location + 0x1be), %bx # First partition table entry offset
-    mov $0b10000000, %cl
+    mov $(_stage0_memory_location + 0x1be), %bx # First partition table entry offset
+    mov $0b10000000, %cl # Mask
     mov $0, %dh # Counter
 
     .boot_loop:
@@ -155,7 +166,6 @@ start_reading_kernel:
     .kernel_partition_found:
     # Now we need to read from the HDD
 
-
     # Read Boot Record
     mov %di, %fs
     mov $_dap_memory_location, %di 
@@ -167,13 +177,14 @@ start_reading_kernel:
 
     # Check for the Boot Record kernel signature
     mov %fs, %ax
-    add $0x05a, %ax # Get offset of signature
+    add $_fat_inject_magic_offset, %ax # Get offset of signature
     mov %ax, %di
     movw (%di), %ax
-    movw $0x3141, %bx
+    movw $_fat_inject_magic, %bx
     leaw bootr_signature_notFound_error_msg, %si
     cmp %ax, %bx
     jne error
+
 
 
 read_kernel:
@@ -183,9 +194,6 @@ read_kernel:
     mov %fs, %ax
     add $512, %ax
     mov %ax, %fs
-
-    #mov $512, %al
-    #add %al, %fs # One sector
 
     .read_kernel_loop:
         push %cx
@@ -330,74 +338,8 @@ a20_gate_enabled:
     cli # Disable interrupts
 
 load_GDT:
-    # Let's try using the DAP location +48 as the location for the GDT, since we're not gonna
-    # read anything anymore
-    # The +48 is to leave space for the gdtr structure, to use with lgdtr
-
-    mov $(_dap_memory_location + 48), %di
-    mov $(_dap_memory_location + 48), %ax
-
-    # First of all, null segment descriptor. We store a copy of the GDT location itself
-    mov %ax, (%di)
-    add $8, %di # Increment by 8 bytes, size of tables
-
-    # Now construct the segments we need
-    # First one is a 4 GB, 32-bit, DPL-0, "non-conforming" type, code segment descriptor
-    mov $0xffff, %ax
-    mov %ax, (%di)
-    add $2, %di
-    mov $0, %ax
-    mov %ax, (%di)
-    add $2, %di
-    movb %al, (%di)
-    add $1, %di
-    movb $0x9a, %al # Accessed bit, check docs for meaning
-    movb %al, (%di)
-    add $1, %di
-    mov $0xc, %al # Flags
-    shlb $4, %al # Shift left
-    orb $0x0f, %al # Or with lower limit, to set everything correctly
-    mov %al, (%di)
-    add $1, %di
-    mov $0, %ax
-    mov %ax, (%di)
-    add $1, %di
-
-    # Second one is a 4 GB, 32-bit, DPL-0, "expand-up" type, data segment descriptor
-    mov $0xffff, %ax
-    mov %ax, (%di)
-    add $2, %di
-    mov $0, %ax
-    mov %ax, (%di)
-    add $2, %di
-    movb %al, (%di)
-    add $1, %di
-    movb $0x92, %al # Accessed bit, check docs for meaning
-    movb %al, (%di)
-    add $1, %di
-    mov $0xc, %al # Flags
-    shlb $4, %al # Shift left
-    orb $0x0f, %al # Or with lower limit, to set everything correctly
-    mov %al, (%di)
-    add $1, %di
-    mov $0, %ax
-    mov %ax, (%di)
-
-    # Should be everything, so load the gdtr
-    # Setup
-    xor %eax, %eax
-    mov %ds, %ax
-    shl $4, %eax
-    add $(_dap_memory_location + 48), %eax # GDT location
-    mov $(_dap_memory_location + 2), %di # Base storage
-    mov %eax, (%di)
-    mov $(_dap_memory_location + 48 + 24), %ax # GDT end location
-    sub $(_dap_memory_location + 48 ), %ax # Size of GDT
-    mov $_dap_memory_location, %di # Limit storage
-    mov %ax, (%di)
-
-    # Now we're ready
-    lgdt _dap_memory_location
+    mov $gdt_desc, %di
+    lgdt (%di)
 
 setup_protected:
     # Gonna setup jump to protected mode
@@ -408,10 +350,10 @@ setup_protected:
     mov %eax, %cr0 
 
     # Long jump
-    ljmp $0x8, $enter_protected_mode
+    ljmp $0x08, $enter_protected_mode
 
-enter_protected_mode:
 .code32
+enter_protected_mode:
     # Load segment registers with data segment selector corresponding to data segment descriptor
     mov $0x10, %eax
     mov %eax, %ds
@@ -421,17 +363,39 @@ enter_protected_mode:
     mov %eax, %ss
 
     # Setup protected mode stack (same place, temporary)
-    mov $_stack_pointer, %eax
-    mov %eax, %esp
+    mov $0xf00, %eax
     mov %eax, %ebp
+    mov %eax, %esp
 
-    mov $0xfafa, %eax
-    mov %eax, %ebx
+    # We get here. Now is the time to load the multiboot header
+    #FIXME here
 
-# We get here. Now is the time to load the multiboot header
+
+.extern _multiboot_main
+    mov $0xfafa, %ebx
+    push %ebx
+    call _multiboot_main
+
 
     cli
     hlt
+    #addl $4, %esp # Return stack to where it should be
+
+    # Test if we get the return, fingers crossed
+    #mov %eax, %ebx
+
+
+    #mov $0xfafa, %eax
+    #mov %eax, %ebx
+    mov $0xffff, %eax
+
+    cli
+    hlt
+
+testttt:
+    ret
+
+
 
 
 # Useful functions, 16-bit real
@@ -609,4 +573,37 @@ test_msg:
     .asciz "We're here\n\r"
 
 
-.equ _prog_size, . - _start + 2
+.code32
+.data
+gdt_start:
+gdt_null_segment:
+    .quad 0
+gdt_code_segment:
+    .word 0xffff
+    .word 0x0000
+    .byte 0
+    .byte 0b10011010
+    .byte 0b11001111
+    .byte 0
+    #.long 0x0000ffff
+    #.long 0x00cf9a00
+gdt_data_segment:
+    .word 0xffff
+    .word 0x0000
+    .byte 0
+    .byte 0b10010010
+    .byte 0b11001111
+    .byte 0
+    #.long 0x0000ffff
+    #.long 0x00cf9200
+gdt_end:
+.equ GDT_START, gdt_start # This is necessary, cause for some reason just doing
+                          # .long gdt_start doesn't store the right address, and
+                          # I can't figure out why, but this hack works
+gdt_desc:
+    .word gdt_end - gdt_start - 1
+    .long GDT_START
+    
+
+.equ CODE_SEGMENT, gdt_code_segment - gdt_start
+.equ DATA_SEGMENT, gdt_data_segment - gdt_start
