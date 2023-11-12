@@ -103,7 +103,6 @@ $(CLEANSUBDIRS):
 
 .PHONY: subdirs $(CLEANSUBDIRS)
 
-# FIXME remove loopback devices and mounts
 distclean: clean
 ifeq ($(shell mountpoint -q $(BMOUNTDIR) && mountpoint -q $(KMOUNTDIR) && echo "yes"),yes)
 	@echo 'Attempting to remove loopbacks'
@@ -114,6 +113,16 @@ endif
 	-$(Q)rm -f ${addsuffix /Makefile,${SUBDIRS}}
 	-$(Q)rm -f config.mk
 	-$(Q)rm -f Makefile
+
+.PHONY: docs
+
+docs:
+	#<makedocs>
+	@echo '   Building documentation'
+	-$(Q)doxygen Doxyfile
+	#<makedocs_error>
+	$(error We didn't detect doxygen during configuration, please make sure it's installed and run 'configure again')
+	#<!makedocs>
 
 # Allows printing a make variable in command line as: make print-VAR
 # Good for debugging

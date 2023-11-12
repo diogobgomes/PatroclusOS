@@ -24,7 +24,7 @@ $2 ${1}/build-scripts/injectFAT.py ${tmpfile_in} ${tmpfile_out} $4
 dd if=${tmpfile_out} of=$5 conv=notrunc seek=$(($4 * 512 + 90)) bs=1 count=420
 
 # Remove temporary files
-#rm -f ${tmpfile_in}
-#rm -f ${tmpfile_out}
+rm -f ${tmpfile_in}
+rm -f ${tmpfile_out}
 
 # Done!

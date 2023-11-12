@@ -544,27 +544,31 @@ else
     sudo losetup -d ${diskimage_loopback}
     echo "Diskimage ${diskimage} generated!" | tee -a ${configlog}
 fi
-    
+
+# ------------------------------------------------------------------------------
+# Copy .gdbinit, create gdb_history
+# ------------------------------------------------------------------------------
+cp ${rootsrcdir}/config/gdbinit .gdbinit
+touch .gdb_history
 
 
 # ------------------------------------------------------------------------------
 # Generate the Doxyfile from Doxyfile.in
 # ------------------------------------------------------------------------------
-#echo "" >> ${configlog}
-#echo "" >> ${configlog}
-#log_header Doxyfile >> ${configlog}
-#echo "Writing Doxyfile to ${rootsrcdir}/Doxygen..." | tee -a ${configlog}
-## Generate doxyfile
-#sed -e "s,@Doxygen_Output_Directory,${rootsrcdir}/docs," -e \
-#"s,@Doxygen_Input_Directory,${rootsrcdir}/kernel ${rootsrcdir}/lib \
-#${rootsrcdir}/include," < ${rootsrcdir}/docs/Doxyfile.in \
-#> ${rootsrcdir}/docs/Doxyfile
-## Configure the makefile if we can't use doxygen
-#${python} ${rootsrcdir}/build-scripts/doxygen-cleanup.py\
-# ${rootsrcdir}/Makefile ${build_docs} &> /dev/null
-#if [ $? -ne 0 ]; then
-#    echo "Error: Error when modifying the Makefile target docs" | tee -a ${configlog}
-#    exit 5
-#fi
+echo "" >> ${configlog}
+echo "" >> ${configlog}
+log_header Doxyfile >> ${configlog}
+echo "Writing Doxyfile to ${rootsrcdir}/Doxygen..." | tee -a ${configlog}
+# Generate doxyfile
+sed -e "s,@Doxygen_Output_Directory,./gen-docs," -e \
+"s,@Doxygen_Input_Directory,${rootsrcdir}," < ${rootsrcdir}/docs/Doxyfile.in \
+> ./Doxyfile
+# Configure the makefile if we can't use doxygen
+${python} ${rootsrcdir}/build-scripts/doxygen-cleanup.py\
+ ./Makefile ${build_docs} &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "Error: Error when modifying the Makefile target docs" | tee -a ${configlog}
+    exit 5
+fi
 
 echo 'Configuration complete, type make to build.'
