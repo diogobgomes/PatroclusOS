@@ -18,6 +18,8 @@ ifneq ($(MADE_CONFIG),true)
 $(error We're not properly configured, run ./configure!!)
 endif
 
+#HEADER_SUBDIR:=include
+
 ################################################
 
 .PHONY: all install
@@ -45,9 +47,12 @@ include $(ROOT_SRCDIR)/bootloader/src.mk
 
 # Generate list of objs
 BOOTLDROBJS:=$(patsubst %.S,%.o,$(BOOTLDRSRC))
+STAGE1OBJS:=$(patsubst %.S,%.o,$(STAGE1SRC))
+STAGE1OBJS:=$(patsubst %.c,%.o,$(STAGE1OBJS))
 
 # Correct sources for source directory
-BOOTLDRSRC:=$(addprefix $(ROOT_SRCDIR)/bootloader,$(BOOTLDRSRC))
+BOOTLDRSRC:=$(addprefix $(ROOT_SRCDIR)/bootloader/,$(BOOTLDRSRC))
+STAGE1SRC:=$(addprefix $(ROOT_SRCDIR)/bootloader/,$(STAGE1SRC))
 
 # Memory locations
 STAGE0_ADDR:=0x0500
@@ -66,13 +71,21 @@ stage0.bin: stage0.o
 	$(call cmd,ld)
 	$(Q)$(LD) --oformat binary -o stage0.bin -Ttext $(STAGE0_ADDR) stage0.o
 
-stage1.bin: stage1.o multiboot-loader.o
+stage1.bin: $(STAGE1OBJS)
 	$(call cmd,ld)
-	$(Q)$(LD) -o stage1.bin -T ${ROOT_SRCDIR}/bootloader/stage1-linker.ld stage1.o multiboot-loader.o
+	$(Q)$(LD) -o stage1.bin -T ${ROOT_SRCDIR}/bootloader/stage1-linker.ld $(STAGE1OBJS)
+	@echo 'Testing size of stage1.bin...'
+	$(Q)test $$(ls -l stage1.bin | awk '{print $$5}') -lt 16384 && echo "Worry not, stage1.bin is fiiiiiine"
+	
+	
+#	ifeq ($(shell test $$(ls -l stage1.bin | awk '{print $$5}') -gt 16384 && echo yes),yes)
+#		$(error The size of stage1.bin is slightly worrisome in terms of memory management)
+#	endif
+
 # Check stage1.bin size, must be less than 16kB
-ifeq ($(shell test $$(ls -l stage1.bin | awk '{print $$5}') -gt 16384 && echo yes),yes)
-	$(error The size of stage1.bin is slightly worrisome in terms of memory management)
-endif
+#ifeq ($(shell test $$(ls -l stage1.bin | awk '{print $$5}') -gt 16384 && echo yes),yes)
+#	$(error The size of stage1.bin is slightly worrisome in terms of memory management)
+#endif
 
 
 clean:

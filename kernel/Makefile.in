@@ -47,7 +47,7 @@ include $(ROOT_SRCDIR)/kernel/src.mk
 KERNELOBJS:=$(patsubst %.S,%.o,$(KERNELSRC))
 
 # Correct sources for source directory
-KERNELSRC:=$(addprefix $(ROOT_SRCDIR)/bootloader,$(KERNELSRC))
+KERNELSRC:=$(addprefix $(ROOT_SRCDIR)/kernel,$(KERNELSRC))
 
 ################################################
 

@@ -25,13 +25,18 @@ endif
 
 # Subdirectories
 SUBDIRS:=bootloader kernel
-#HEADER_SUBDIR:=include
+HEADER_SUBDIR:=include
 BMOUNTDIR:=bootloader_mount
 KMOUNTDIR:=kernel_mount
 
 BUILDSUBDIRS:=$(SUBDIRS:%=build-%)
 INSTALLSUBDIRS:=$(SUBDIRS:%=install-%)
 CLEANSUBDIRS:=$(SUBDIRS:%=clean-%)
+
+# Add headers
+HEADERS:=$(shell find $(ROOT_SRCDIR)/$(HEADER_SUBDIR) -name "*.h" -o -name "*.hpp")
+INSTALL_HEADERS:=$(patsubst $(ROOT_SRCDIR)/$(HEADER_SUBDIR)/%,$(SYSROOT)/$(HEADER_SUBDIR)/%,$(HEADERS))
+
 
 # Make sure everything is mounted
 ifneq ($(shell mountpoint -q $(BMOUNTDIR) && mountpoint -q $(KMOUNTDIR) && echo "yes"),yes)
@@ -49,13 +54,17 @@ endif
 
 .PHONY: all clean install qemu install-headers distclean docs
 
-all: $(BUILDSUBDIRS) $(SYSROOT)
-$(BUILDSUBDIRS):
+all: install-headers $(BUILDSUBDIRS) $(SYSROOT) 
+$(BUILDSUBDIRS): install-headers
 	@$(MAKE) -C $(@:build-%=%)
 
 # Create the sysroot subdirectory
 $(SYSROOT):
 	$(Q)mkdir -p $(SYSROOT)
+	$(Q)mkdir -p $(SYSROOT)/$(HEADER_SUBDIR)
+	$(Q)cd $(ROOT_SRCDIR)/$(HEADER_SUBDIR); find . -type d -exec mkdir -p $(SYSROOT)/include/{} \;
+
+
 
 # Install
 install: all $(INSTALLSUBDIRS) $(SYSROOT)
@@ -77,6 +86,12 @@ $(BMOUNTDIR)/stage1.bin: install
 $(KMOUNTDIR)/kernel.bin: install
 	$(call cmd, ls)
 	$(Q)cp $(SYSROOT)/kernel/kernel.bin $(KMOUNTDIR)/kernel.bin
+
+# Install the headers
+install-headers: $(SYSROOT) $(INSTALL_HEADERS)
+$(INSTALL_HEADERS): $(HEADERS)
+	$(call cmp,cp)
+	$(Q)cp $(patsubst $(SYSROOT)/$(HEADER_SUBDIR)/%,$(ROOT_SRCDIR)/$(HEADER_SUBDIR)/%,$@) $@
 
 
 #boot.bin: install $(SYSROOT)/bootloader/stage0.bin

@@ -209,11 +209,11 @@ diskimage=${diskimage:-$(pwd)/diskimage.dd}
 diskimage_loopback=${diskimage_loopback:-/dev/loop0}
 
 # Target directories
-prefix=${prefix:-/usr}
-execprefix=${execprefix:-${prefix}}
-bootdir=${bootdir:-/boot}
-libdir=${libdir:-${execprefix}/lib}
-includedir=${includedir:-${prefix}/include}
+#prefix=${prefix:-/usr}
+#execprefix=${execprefix:-${prefix}}
+#bootdir=${bootdir:-/boot}
+#libdir=${libdir:-${execprefix}/lib}
+includedir=${includedir:-/include}
 
 # Tools
 python=${python:-/bin/python3}
@@ -426,10 +426,10 @@ echo "PYTHON:=${python}" >> ${destmakeconfig}
 echo "SYSROOT:=${sysroot}" >> ${destmakeconfig}
 echo "DISKIMAGE:=${diskimage}" >> ${destmakeconfig}
 echo "DISKIMAGE-LOOPBACK:=${diskimage_loopback}" >> ${destmakeconfig}
-echo "PREFIX?=${prefix}" >> ${destmakeconfig}
-echo "EXEC_PREFIX?=${execprefix}" >> ${destmakeconfig}
-echo "BOOTDIR?=${bootdir}" >> ${destmakeconfig}
-echo "LIBDIR?=${libdir}" >> ${destmakeconfig}
+#echo "PREFIX?=${prefix}" >> ${destmakeconfig}
+#echo "EXEC_PREFIX?=${execprefix}" >> ${destmakeconfig}
+#echo "BOOTDIR?=${bootdir}" >> ${destmakeconfig}
+#echo "LIBDIR?=${libdir}" >> ${destmakeconfig}
 echo "INCLUDEDIR?=${includedir}" >> ${destmakeconfig}
 echo "LIBC-BIN:=${withlibc}" >> ${destmakeconfig}
 echo "LIBK-BIN:=${withlibk}" >> ${destmakeconfig}
@@ -494,10 +494,10 @@ echo "PYTHON:=${python}" >> ${configlog}
 echo "SYSROOT:=${sysroot}" >> ${configlog}
 echo "DISKIMAGE:=${diskimage}" >> ${configlog}
 echo "DISKIMAGE-LOOPBACK:=${diskimage_loopback}" >> ${configlog}
-echo "PREFIX?=${prefix}" >> ${configlog}
-echo "EXEC_PREFIX?=${execprefix}" >> ${configlog}
-echo "BOOTDIR?=${bootdir}" >> ${configlog}
-echo "LIBDIR?=${libdir}" >> ${configlog}
+#echo "PREFIX?=${prefix}" >> ${configlog}
+#echo "EXEC_PREFIX?=${execprefix}" >> ${configlog}
+#echo "BOOTDIR?=${bootdir}" >> ${configlog}
+#echo "LIBDIR?=${libdir}" >> ${configlog}
 echo "INCLUDEDIR?=${includedir}" >> ${configlog}
 echo "LIBC-BIN:=${withlibc}" >> ${configlog}
 echo "LIBK-BIN:=${withlibk}" >> ${configlog}

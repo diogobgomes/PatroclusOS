@@ -1,16 +1,17 @@
-# STAGE1
-#
-# Main bootloader assembly stub, that sits in the FAT32 partition. Purpose is
+# @file stage1.S
+# @author Diogo Gomes
+# @brief Main bootloader assembly stub, that sits in the FAT32 partition. Purpose is
 # to set up the CPU to a known state, get information from the BIOS, and load
 # the kernel, while providing some user input
-#
-#
+# @version 0.2
+# @date 2023-11-05
 # 2023 Diogo Gomes
 
 
 
 .code16
 .global _start
+.extern _multiboot_main
 
 # Set constants
 _stack_pointer = 0x6FFE
@@ -61,7 +62,11 @@ _start:
 # Int 15h stores results in %di
 get_upper_memory:
     #Loop setup
-    add $4, %di # Save four bytes for upper mem entry count
+    add $6, %di # Save four bytes for upper mem entry count, increment 2 bytes from before
+                # Add 4 bytes for length (each entry), store 24 there for simplicity    
+    mov $24, %eax
+    mov %eax, (%di)
+    add $4, %di
     xor %bp, %bp # Use %bp as a counter, reset at the end
     mov $0, %ebx
     mov $_int_15h_edx_const, %edx
@@ -76,9 +81,15 @@ get_upper_memory:
     leaw int15_short_error_msg, %si
     test %ebx, %ebx # If %ebx is zero, list is only 1 entry long (worthless)
     je error
+    jmp .get_upper_memory_skip_loop
 
 .get_upper_memory_loop:
-    add $24, %di
+    # Store lenght of entry (always 24 for simplicity)
+    mov $24, %eax
+    mov %eax, (%di)
+    add $4, %di # Increment
+
+.get_upper_memory_skip_length:
     mov $_int_15h_eax_const, %eax
     mov $24, %ecx
     mov $_int_15h_edx_const, %edx # Some BIOSs may trash this, if they won't we do
@@ -99,16 +110,22 @@ get_upper_memory:
     or %ecx, 12(%di) # Or with upper uint32_t to test for 0
     jz .get_upper_memory_skip_entry # Skip it
     inc %bp # Increment counter
+    add $24, %di
+    jmp .get_upper_memory_keep_entry
 
 .get_upper_memory_skip_entry:
     or %ebx, %ebx # If %ebx is 0, reached the end
+    jnz .get_upper_memory_skip_length
+
+.get_upper_memory_keep_entry:
+    or %ebx, %ebx # Same as .get_upper_memory_skip_entry, but jump to beggining of loop
     jnz .get_upper_memory_loop
 
 get_upper_memory_done:
-    mov (_info_store_location + 2), %si
+    mov $(_info_store_location + 2), %si
     mov %bp, (%si)
     clc
-    add $24, %di # This is the next free space
+    add $120, %di # Leave space for the multiboot info structure
 
     # Restore %bp
     mov $_stack_pointer, %ax
@@ -189,11 +206,12 @@ start_reading_kernel:
 
 read_kernel:
     add $0x02, %di
+    push %di # Save this for later, trust me bro
     mov (%di), %cx # Number of sectors to read
 
-    mov %fs, %ax
-    add $512, %ax
-    mov %ax, %fs
+    #mov %fs, %ax
+    #add $512, %ax
+    #mov %ax, %fs
 
     .read_kernel_loop:
         push %cx
@@ -226,9 +244,15 @@ read_kernel:
         jmp .read_kernel_loop
 
     .read_kernel_complete:
+    pop %ax # Initial value of pointer when we started
+    mov %di, %bx
+    sub %ax, %bx
+    push %bx # Save it for laaaaater
+
     # We go to uncharted territory now - enabling the A20 gate
     leaw read_kernel_succesfull_msg, %si
     call write_loop
+
 
 a20_gate:
     # Temporarily disable A20 so we can test enabling it!
@@ -347,15 +371,19 @@ setup_protected:
     # Set the protection enable bit in %cr0
     mov %cr0, %eax
     or $1, %eax
-    mov %eax, %cr0 
+    mov %eax, %cr0
+
+    # Preserve kernel size counter in %bx, don't trust the stack
+    xor %ebx, %ebx
+    pop %bx
 
     # Long jump
-    ljmp $0x08, $enter_protected_mode
+    ljmp $CODE_SEGMENT, $enter_protected_mode
 
 .code32
 enter_protected_mode:
     # Load segment registers with data segment selector corresponding to data segment descriptor
-    mov $0x10, %eax
+    mov $DATA_SEGMENT, %eax
     mov %eax, %ds
     mov %eax, %es
     mov %eax, %fs
@@ -368,29 +396,66 @@ enter_protected_mode:
     mov %eax, %esp
 
     # We get here. Now is the time to load the multiboot header
-    #FIXME here
-
-
-.extern _multiboot_main
-    mov $0xfafa, %ebx
     push %ebx
+
+    # Figure out where kernel is buffered to
+    # TODO we can improve this by storing initial location on stack
+    mov $(_info_store_location + 0x2), %eax
+    mov %eax,%esi
+    mov (%esi), %eax
+    mov $28, %ebx # Size of each mem_upper entry
+    mul %ebx
+    mov %esi, %ebx
+    add %ebx, %eax
+    add $124, %eax # We currently to the last mem entry, point instead to first kernel
+                   # Also add 120 to account for multiboot info structure
+    mov %eax, %esi
+
+    # FIXME just for testing, remove unnecessary push/pop
+    pop %ebx
+    mov $_info_store_location, %eax
+    mov $_info_store_location + 2, %ecx
+
+    
+
+
+    #mov $0xb8000, %eax
+    #mov %eax, %esi
+    #mov $3962, %eax
+    #mov %eax, (%esi)
+#
+    #hlt
+
+
+
+
+
+
+    push %ebx
+    push %ecx
+    push %eax
+    push %esi
     call _multiboot_main
+    addl $8, %esp # Discard calling variables
 
+    # Deal with potential error condition: %eax == NULL
+    test %eax,%eax
+    je multiboot_loader_error
+
+    #mov $0x100155,%eax
+    jmp %eax
+
+    mov (%esi), %ebx
+
+    # FIXME add code to return to 16bit real mode, to notify user that no multiboot was found
 
     cli
     hlt
-    #addl $4, %esp # Return stack to where it should be
-
-    # Test if we get the return, fingers crossed
-    #mov %eax, %ebx
 
 
-    #mov $0xfafa, %eax
-    #mov %eax, %ebx
-    mov $0xffff, %eax
+multiboot_loader_error:
 
-    cli
-    hlt
+
 
 testttt:
     ret
@@ -571,6 +636,9 @@ read_error_msg:
 
 test_msg:
     .asciz "We're here\n\r"
+
+test2_msg:
+    .asciz "This is a test message\n\r"
 
 
 .code32

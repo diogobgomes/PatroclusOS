@@ -167,8 +167,8 @@ Stage1 must accomplish the following tasks:
 6) [x] Disable interrupts
 7) [x] Load the Global Descriptor Table
 8) [x] Switch to protected mode
-9) [ ] Invoke the Multiboot loader
-10) [ ] Begin execution of the kernel
+9) [x] Invoke the Multiboot loader
+10) [x] Begin execution of the kernel
 
 If anything fails, we must:
 1) [x] Warn the user of a failure
