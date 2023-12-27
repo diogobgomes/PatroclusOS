@@ -68,15 +68,16 @@ get_upper_memory:
     mov %eax, (%di)
     add $4, %di
     xor %bp, %bp # Use %bp as a counter, reset at the end
-    mov $0, %ebx
+    xor %ebx, %ebx # ebx to zero
     mov $_int_15h_edx_const, %edx
     mov $_int_15h_eax_const, %eax
+    movl $1, 20(%di) # Force a valid ACPI 3.X entry
     mov $24, %ecx # Read 24 bytes at a time
     int $0x15
     leaw int15_initial_error_msg, %si
-    jc error
-    mov $_int_15h_edx_const, %edx
-    cmp %eax, %edx
+    jc error # Carry set on first call means "unsupported function"
+    mov $_int_15h_edx_const, %edx # Some BIOSes may trash this
+    cmp %edx, %eax # On success, eax must have been reset to "SMAP"
     jne error
     leaw int15_short_error_msg, %si
     test %ebx, %ebx # If %ebx is zero, list is only 1 entry long (worthless)
@@ -91,6 +92,7 @@ get_upper_memory:
 
 .get_upper_memory_skip_length:
     mov $_int_15h_eax_const, %eax
+    movl $1, 20(%di) # Force a valid ACPI 3.X entry
     mov $24, %ecx
     mov $_int_15h_edx_const, %edx # Some BIOSs may trash this, if they won't we do
     int $0x15
@@ -99,27 +101,26 @@ get_upper_memory:
     
 .get_upper_memory_skip_loop:
     jcxz .get_upper_memory_skip_entry
-    cmp $20, %cl # Is this a ACPI 3.X entry?
+    cmp $20, %ecx # Is this a ACPI 3.X entry?
     jbe .get_upper_memory_20bytes
-    mov $1, %dl
-    test 20(%di), %dl # If this is 3.X, then is the "ignore this data" bit set?
+    test $1, 20(%di) # If this is 3.X, then is the "ignore this data" bit set?
     je .get_upper_memory_skip_entry
 
 .get_upper_memory_20bytes:
     mov 8(%di), %ecx # Lower uint32_t of memory region lenght
-    or %ecx, 12(%di) # Or with upper uint32_t to test for 0
+    or 12(%di), %ecx # Or with upper uint32_t to test for 0
     jz .get_upper_memory_skip_entry # Skip it
     inc %bp # Increment counter
     add $24, %di
     jmp .get_upper_memory_keep_entry
 
 .get_upper_memory_skip_entry:
-    or %ebx, %ebx # If %ebx is 0, reached the end
-    jnz .get_upper_memory_skip_length
+    test %ebx, %ebx # If %ebx is 0, reached the end
+    jne .get_upper_memory_skip_length
 
 .get_upper_memory_keep_entry:
-    or %ebx, %ebx # Same as .get_upper_memory_skip_entry, but jump to beggining of loop
-    jnz .get_upper_memory_loop
+    test %ebx, %ebx # Same as .get_upper_memory_skip_entry, but jump to beggining of loop
+    jne .get_upper_memory_loop
 
 get_upper_memory_done:
     mov $(_info_store_location + 2), %si
@@ -412,30 +413,25 @@ enter_protected_mode:
     mov %eax, %esi
 
     # FIXME just for testing, remove unnecessary push/pop
-    pop %ebx
+    #pop %ebx
     mov $_info_store_location, %eax
     mov $_info_store_location + 2, %ecx
 
-    
 
 
-    #mov $0xb8000, %eax
-    #mov %eax, %esi
-    #mov $3962, %eax
-    #mov %eax, (%esi)
-#
-    #hlt
-
-
-
-
-
-
-    push %ebx
+    #push %ebx
     push %ecx
     push %eax
     push %esi
     call _multiboot_main
+
+    .extern terminal_test_func
+    .extern terminal_initialize
+    #call terminal_initialize
+    #call terminal_test_func
+    #cli
+    #hlt
+    
     addl $8, %esp # Discard calling variables
 
     # Deal with potential error condition: %eax == NULL
@@ -443,24 +439,11 @@ enter_protected_mode:
     je multiboot_loader_error
 
     #mov $0x100155,%eax
-    jmp %eax
-
-    mov (%esi), %ebx
-
-    # FIXME add code to return to 16bit real mode, to notify user that no multiboot was found
-
-    cli
-    hlt
-
+    #jmp %eax
 
 multiboot_loader_error:
-
-
-
-testttt:
-    ret
-
-
+    cli
+    hlt
 
 
 # Useful functions, 16-bit real

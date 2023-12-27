@@ -22,12 +22,19 @@
 
 uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* mem_upper,uint32_t kernel_size) {
     terminal_initialize();
-    terminal_write_string("Entering _multiboot_main\n");
-    
+    terminal_write_string("Successful jump to 32-bit protected mode, entering _multiboot_main...\n");
+
     // Find the header in our kernel
     const struct multiboot_header *header = multiboot_header_search(ptr);
 
-    if(!header) return NULL; // If we failed to find the header, return 0
+    if(!header)
+    {
+        terminal_write_string("Couldn't find multiboot header, aborting!");
+        return NULL; // If we failed to find the header, return 0
+    }
+
+    //TODO when we implement hex, say where it was found
+    terminal_write_string("Found multiboot header\n");
 
     struct multiboot_info_structure *info_table = (struct multiboot_info_structure*) (ptr - MULTIBOOT_INFO_SIZE);
 
@@ -40,7 +47,12 @@ uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* m
         // mem_upper + 4 is the start of the actual list of entries
         info_table->mem_upper = get_upper_memory_size( (struct mmap_structure_entry*) (mem_upper + 4), *mem_upper );
 
-        if(info_table->mem_upper == 0) info_table->mem_upper = 0; //FIXME test this condition, return an error
+        if(info_table->mem_upper == 0) // Memory was too large for uint32_t, we're not in 32-bit
+        {
+            info_table->mem_upper = 0;
+            terminal_write_string("Size of upper memory found was too big for uint32_t. You sure this is a 32-bit PC? Aborting!");
+            return NULL;
+        }
 
         // Now for the mmap, is really easy, cause everything was setup for us
         info_table->mmap_length = *mem_upper;
@@ -59,18 +71,25 @@ uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* m
         return NULL; // This is actually the multiboot standard, hey!
     }
 
-    terminal_write_string("Header is lekker, do the elf loading\n");
+    terminal_write_string("Everything was fine with the multiboot header, going for ELF loading...\n");
 
     // Do the elf loading!
     elf32_Ehdr *elf_header = (elf32_Ehdr*) ptr;
-    if(!(elf_check_file(elf_header))) return NULL;
-    //return(elf_check_file2(elf_header));
-    if(!(elf_load(elf_header))) return NULL; // Here we actually do the loading, cool
+    if(!(elf_check_file(elf_header)))
+    {
+        terminal_write_string("Something was wrong with the ELF header, or we don't support it, aborting!");
+        return NULL;
+    }
 
+    if(!(elf_load(elf_header))) // Here we actually do the loading, cool
+    {
+        terminal_write_string("Something went wrong with loading, aborting!");
+        return NULL; 
+    }
     //asm ("movl $0xfafa,%eax;");
     //asm ("hlt;");
 
-    terminal_write_string("Everything is more than amazing, jump to kernel\n");
+    terminal_write_string("Everything is more than amazing, jump to kernel!\n");
 
     return (uint8_t *) elf_header->e_entry;
 
@@ -96,9 +115,10 @@ uint32_t get_upper_memory_size( const struct mmap_structure_entry *ptr, uint32_t
     // Loop through the structure, add up the lengths
     // Pinky promise not to trash the ptr
     uint32_t final_size = 0;
-    // FIXME: check that memory length is not greater than limit for uint32_t
-    for ( const struct mmap_structure_entry * entry = ptr; (uint32_t) entry < num_entries; ++entry )
+    
+    for ( const struct mmap_structure_entry * entry = ptr; entry < ptr + num_entries; ++entry )
     {
+        //if( entry->type != 1 && entry->type != 3 ) continue;
         uint64_t test = final_size + entry->length;
         if (test > UINT32_MAX) return 0;
         final_size = (uint32_t) test; // It's safe cause we tested it

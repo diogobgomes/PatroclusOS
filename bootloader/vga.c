@@ -22,18 +22,33 @@ size_t terminal_column;
 uint8_t terminal_color;
 uint16_t* terminal_buffer;
  
+//TODO instead of clearing the screen, go to next available line
 void terminal_initialize(void) 
 {
-	terminal_row = 0;
+	terminal_row = 11;
 	terminal_column = 0;
 	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
 	terminal_buffer = (uint16_t*) 0xB8000;
-	for (size_t y = 0; y < VGA_HEIGHT; y++) {
+
+	// Set a red line to separate everything
+    uint8_t red_color = vga_entry_color(VGA_COLOR_BLACK,VGA_COLOR_RED);
+    for(size_t x = 0; x < VGA_WIDTH; x++)
+    {
+        const size_t index = terminal_row * VGA_WIDTH + x;
+        terminal_buffer[index] = vga_entry(' ',red_color);
+    }
+    ++terminal_row;
+
+    
+    
+
+    /*
+    for (size_t y = 0; y < VGA_HEIGHT; y++) {
 		for (size_t x = 0; x < VGA_WIDTH; x++) {
 			const size_t index = y * VGA_WIDTH + x;
 			terminal_buffer[index] = vga_entry(' ', terminal_color);
 		}
-	}
+	}*/
 }
  
 void terminal_set_color(uint8_t color) 
@@ -94,3 +109,4 @@ int terminal_write_string(const char* data)
 	int test = terminal_write(data, strlen(data));
     return test;
 }
+
