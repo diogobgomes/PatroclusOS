@@ -40,7 +40,7 @@ extern "C" {
  * @param kernel_size Size of kernel file
  * @return uint8_t* WIP
  */
-uint8_t* _multiboot_main(uint8_t* ptr, const uint16_t* mem_lower, const uint8_t* mem_upper, uint32_t kernel_size);
+uint8_t* _multiboot_main(uint8_t* ptr, const uint16_t* mem_lower, const uint8_t* mem_upper, uint32_t boot_device);
 
 /**
  * @brief Search for a valid multiboot header in the first MULTIBOOT_SEARCH bytes

@@ -22,6 +22,7 @@ _fat_inject_magic = 0x3141
 _fat_inject_magic_offset = 0x5A
 _stage1_magic = 0x5926
 _stage1_location = 0x3000
+_multiboot_magic = 0x2BADB002
 
 
 _int_15h_eax_const = 0xE820
@@ -103,7 +104,7 @@ get_upper_memory:
     jcxz .get_upper_memory_skip_entry
     cmp $20, %ecx # Is this a ACPI 3.X entry?
     jbe .get_upper_memory_20bytes
-    test $1, 20(%di) # If this is 3.X, then is the "ignore this data" bit set?
+    testb $1, 20(%di) # If this is 3.X, then is the "ignore this data" bit set?
     je .get_upper_memory_skip_entry
 
 .get_upper_memory_20bytes:
@@ -204,7 +205,6 @@ start_reading_kernel:
     jne error
 
 
-
 read_kernel:
     add $0x02, %di
     push %di # Save this for later, trust me bro
@@ -246,6 +246,9 @@ read_kernel:
 
     .read_kernel_complete:
     pop %ax # Initial value of pointer when we started
+    mov $0, %dh
+    push %dx # Save drive number
+
     mov %di, %bx
     sub %ax, %bx
     push %bx # Save it for laaaaater
@@ -374,9 +377,11 @@ setup_protected:
     or $1, %eax
     mov %eax, %cr0
 
-    # Preserve kernel size counter in %bx, don't trust the stack
-    xor %ebx, %ebx
-    pop %bx
+    # Preserve kernel size counter in %cx, drive number in %dx don't trust the stack
+    xor %edx, %edx
+    xor %ecx, %ecx
+    pop %cx
+    pop %dx
 
     # Long jump
     ljmp $CODE_SEGMENT, $enter_protected_mode
@@ -397,7 +402,9 @@ enter_protected_mode:
     mov %eax, %esp
 
     # We get here. Now is the time to load the multiboot header
-    push %ebx
+    # We're leaving here legacy kernel_size as last parameter, can add to _multiboot_main at any time
+    push %ecx
+    push %edx
 
     # Figure out where kernel is buffered to
     # TODO we can improve this by storing initial location on stack
@@ -412,34 +419,30 @@ enter_protected_mode:
                    # Also add 120 to account for multiboot info structure
     mov %eax, %esi
 
-    # FIXME just for testing, remove unnecessary push/pop
-    #pop %ebx
+
+    # Get memory locations
     mov $_info_store_location, %eax
     mov $_info_store_location + 2, %ecx
 
-
-
-    #push %ebx
+    # Setup call to function
     push %ecx
     push %eax
     push %esi
     call _multiboot_main
-
-    .extern terminal_test_func
-    .extern terminal_initialize
-    #call terminal_initialize
-    #call terminal_test_func
-    #cli
-    #hlt
     
-    addl $8, %esp # Discard calling variables
+    #addl $8, %esp # Discard calling variables
 
     # Deal with potential error condition: %eax == NULL
     test %eax,%eax
     je multiboot_loader_error
 
-    #mov $0x100155,%eax
-    #jmp %eax
+    # Set up multiboot state
+    mov %eax, %ecx # Preserve pointer to kernel
+    mov $_multiboot_magic, %eax # %eax must have the _multiboot_magic value
+    pop %ebx # This minus 120 is the info structure
+    sub $120, %ebx
+
+    jmp *%ecx
 
 multiboot_loader_error:
     cli

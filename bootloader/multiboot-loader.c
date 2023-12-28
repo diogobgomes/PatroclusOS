@@ -19,10 +19,10 @@
 #include <bootloader/string.h>
 #include <bootloader/vga.h>
 
-
-uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* mem_upper,uint32_t kernel_size) {
+uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* mem_upper,uint32_t boot_device) {
     terminal_initialize();
     terminal_write_string("Successful jump to 32-bit protected mode, entering _multiboot_main...\n");
+
 
     // Find the header in our kernel
     const struct multiboot_header *header = multiboot_header_search(ptr);
@@ -39,7 +39,7 @@ uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* m
     struct multiboot_info_structure *info_table = (struct multiboot_info_structure*) (ptr - MULTIBOOT_INFO_SIZE);
 
     // We must now parse the header->flags field
-    if (header->flags & 2) { // Flags[1]
+    if (header->flags & 1) { // Flags[0]
         // Lower memory is easy
         info_table->mem_lower = *mem_lower;
 
@@ -57,6 +57,9 @@ uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* m
         // Now for the mmap, is really easy, cause everything was setup for us
         info_table->mmap_length = *mem_upper;
         info_table->mmap_addr = (uint32_t) (mem_upper + 4);
+    }
+    if (header->flags & 2) { // Flags[1]
+        info_table->boot_device = boot_device;
     }
     if (header->flags & 4) { // Flags[2]
         return NULL; // We can't deal with this request yet
