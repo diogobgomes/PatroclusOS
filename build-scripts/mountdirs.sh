@@ -11,6 +11,10 @@
 # 2023 Diogo Gomes
 
 set -e
+# keep track of the last executed command
+trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
+# echo an error message before exiting
+trap cleanup ERR
 
 # First create the mountpoint
 mkdir -p $1

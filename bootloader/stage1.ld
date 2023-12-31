@@ -10,7 +10,7 @@ SECTIONS
 
     .text : {
         *(.sign)
-        stage1.o(.text);
+        /*stage1.S.obj(.text);*/
         . = ALIGN(4);
         *(.text)
     }
