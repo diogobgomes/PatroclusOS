@@ -55,11 +55,13 @@ set(DISKIMAGE "diskimage.dd" CACHE STRING "Name of the diskimage to be generated
 set(LOOPBACK "/dev/loop0" CACHE STRING "Loopback device to be used")
 set(SCRIPTS_DIR "${CMAKE_SOURCE_DIR}/build-scripts")
 
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
 # Subdirectories
+add_subdirectory(lib)
 add_subdirectory(bootloader)
 add_subdirectory(kernel)
 
-#add_dependencies(bootloader kernel)
 
 # Diskimage generation
 # Python is needed
@@ -96,6 +98,30 @@ if(Python_FOUND)
     else()
         message(STATUS "Doxygen not found, not building docs")
     endif()
+
+    # Get current user
+    #execute_process(COMMAND whoami OUTPUT_VARIABLE CURRENT_USER)
+
+    #add_custom_target(
+    #    distclean
+    #    COMMAND ${CMAKE_SOURCE_DIR}/build-scripts/clean-mounts.sh ${BOOTLOADER_MOUNT} ${KERNEL_MOUNT} ${LOOPBACK}
+    #    DEPENDS clean
+    #    COMMENT "Cleaning everything..."
+    #    VERBATIM
+    #)
+
+    find_package(qemu)
+    if(qemu_FOUND)
+        add_custom_target(
+            qemu
+            COMMAND ${qemu_EXECUTABLE} -drive file=${DISKIMAGE},format=raw
+            COMMENT "Launching qemu..."
+            DEPENDS diskimage
+            VERBATIM
+        )
+    endif()
 else()
     message(STATUS "Python not found, so final diskimage generation and doc building is disabled")
 endif()
+
+

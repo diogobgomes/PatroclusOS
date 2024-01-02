@@ -22,6 +22,8 @@ cleanup() {
     exit $((error_code))
 }
 
+# Get current user, to pass on to subscript
+current_user=$(whoami)
 
 diskimage=$1
 diskimage_loopback=$2
@@ -34,14 +36,21 @@ kernel=$8
 python=$9
 
 # First off, create/mount the directories
-mkdir -p ${bootloader_mount_dir}
-mkdir -p ${kernel_mount_dir}
-if ! mountpoint -q ${bootloader_mount_dir} && ! mountpoint -q ${kernel_mount_dir}; then
-    echo "Filesystems not mounted, attempting to mount them"
-    if ! ${rootsrcdir}/build-scripts/mountdirs.sh ${bootloader_mount_dir} \
-            ${kernel_mount_dir} ${diskimage_loopback} ${diskimage}; then
-        echo "Couldn't correctly mount the filesystems, aborting!"
-    fi
+#mkdir -p ${bootloader_mount_dir}
+#mkdir -p ${kernel_mount_dir}
+#if ! mountpoint -q ${bootloader_mount_dir} && ! mountpoint -q ${kernel_mount_dir}; then
+#    echo "Filesystems not mounted, attempting to mount them"
+#    if ! sudo ${rootsrcdir}/build-scripts/mountdirs.sh ${bootloader_mount_dir} \
+#            ${kernel_mount_dir} ${diskimage_loopback} ${diskimage} ${current_user}; then
+#        echo "Couldn't correctly mount the filesystems, aborting!"
+#        exit 1
+#    fi
+#fi
+
+if ! sudo ${rootsrcdir}/build-scripts/mountdirs.sh ${bootloader_mount_dir} \
+          ${kernel_mount_dir} ${diskimage_loopback} ${diskimage} ${current_user}; then
+    echo "Couldn't correctly mount the filesystems, aborting!"
+    exit 1
 fi
 
 # Now, copy the files over
@@ -51,10 +60,10 @@ cp ${kernel} ${kernel_mount_dir}/kernel.bin
 # Inject the FAT info
 echo "Injecting FAT info to the diskimage..."
 dd if=${stage0} of=${diskimage} conv=notrunc bs=440 count=1
-${rootsrcdir}/build-scripts/injectFAT.sh ${rootsrcdir} ${python} \
-            ${bootloader_mount_dir}/stage1.bin 2048 ${diskimage}
-${rootsrcdir}/build-scripts/injectFAT.sh ${rootsrcdir} ${python} \
-            ${kernel_mount_dir}/kernel.bin 4096 ${diskimage}
+sudo -A ${rootsrcdir}/build-scripts/injectFAT.sh ${rootsrcdir} ${python} \
+            ${bootloader_mount_dir}/stage1.bin 2048 ${diskimage} ${current_user}
+sudo -A ${rootsrcdir}/build-scripts/injectFAT.sh ${rootsrcdir} ${python} \
+            ${kernel_mount_dir}/kernel.bin 4096 ${diskimage} ${current_user}
 sync
 
 echo "Diskimage genereted successfully!"

@@ -1,8 +1,8 @@
 /**
  * @file vga.c
  * @author Diogo Gomes
- * @brief Basic write to screen capability, used by the bootloader. Works by writing
- * directly to memory at 0xb8000
+ * @brief Basic write to screen capability, used by the bootloader and early
+ * kernel. Works by writing directly to memory at 0xb8000
  * @version 0.1
  * @date 2023-12-21
  * 
@@ -10,8 +10,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <bootloader/vga.h>
-#include <bootloader/string.h>
+#include <klib/vga.h>
+#include <klib/string.h>
 
 //TODO implement newline
 //TODO implement scrolling

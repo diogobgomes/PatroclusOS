@@ -20,15 +20,15 @@ else
     dd if=/dev/zero of=${diskimage} bs=1048576 count=12
     echo "Super user permissions are needed for this step"
     echo "sfdisk:"
-    sudo sfdisk ${diskimage} < ${2}/config/diskimage.sfdisk
+    sudo -A sfdisk ${diskimage} < ${2}/config/diskimage.sfdisk
     echo "losetup:"
-    sudo losetup -o $((2048*512)) $3 ${diskimage}
+    sudo -A losetup -o $((2048*512)) $3 ${diskimage}
     echo "mkfs.fat:"
-    sudo mkfs.fat -F 32 $3
-    sudo losetup -d $3
-    sudo losetup -o $((4096*512)) $3 ${diskimage}
+    sudo -A mkfs.fat -F 32 $3
+    sudo -A losetup -d $3
+    sudo -A losetup -o $((4096*512)) $3 ${diskimage}
     echo "mkfs.fat:"
-    sudo mkfs.fat -F 32 $3
-    sudo losetup -d $3
+    sudo -A mkfs.fat -F 32 $3
+    sudo -A losetup -d $3
     echo "Diskimage ${diskimage} generated!"
 fi

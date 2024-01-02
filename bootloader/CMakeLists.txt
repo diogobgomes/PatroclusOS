@@ -11,6 +11,8 @@ set( CMAKE_EXPORT_COMPILE_COMMANDS on )
 # Preprocessor directives
 add_compile_definitions(__bootloader__)
 
+include(${CMAKE_SOURCE_DIR}/include/sources.cmake)
+
 add_executable(
     stage0.bin
     stage0.S
@@ -25,8 +27,7 @@ add_executable(
     stage1.bin
     stage1.S
     multiboot-loader.c
-    string.c
-    vga.c
+    ${HEADER_FILES}
 )
 
 target_link_options(
@@ -34,3 +35,6 @@ target_link_options(
     -T ${CMAKE_CURRENT_SOURCE_DIR}/stage1.ld
 )
 
+target_link_libraries(
+    stage1.bin PUBLIC lib.ar
+)

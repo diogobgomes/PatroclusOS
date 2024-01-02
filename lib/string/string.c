@@ -2,7 +2,7 @@
  * @file string.c
  * @author Diogo Gomes
  * @brief Implementation of very basic functions, memcpy, memcmp, memmove, memset,
- * strlen, to be used by the bootloader
+ * strlen, to be used by the bootloader/kernel
  * @version 0.1
  * @date 2023-12-21
  * 
@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <bootloader/string.h>
+#include <klib/string.h>
 
 size_t strlen(const char* str) 
 {

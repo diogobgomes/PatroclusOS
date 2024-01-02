@@ -16,8 +16,8 @@
 #include <sys/multiboot.h>
 #include <sys/elf.h>
 #include <bootloader/multiboot-loader.h>
-#include <bootloader/string.h>
-#include <bootloader/vga.h>
+#include <klib/string.h>
+#include <klib/vga.h>
 
 uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* mem_upper,uint32_t boot_device) {
     terminal_initialize();
