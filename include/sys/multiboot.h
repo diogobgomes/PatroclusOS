@@ -7,14 +7,14 @@
  * 
  */
 
-#include <stdint.h>
-
 #ifndef _MULTIBOOT_H
 #define _MULTIBOOT_H 1
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <stdint.h>
 
 /**
  * @brief Multiboot header structure, that we must search for in the kernel image

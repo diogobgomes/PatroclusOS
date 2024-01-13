@@ -62,6 +62,11 @@ add_subdirectory(lib)
 add_subdirectory(bootloader)
 add_subdirectory(kernel)
 
+# Add gdb files
+message(STATUS "Creating gdb files...")
+execute_process( COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/config/gdbinit ${CMAKE_BINARY_DIR}/.gdbinit)
+execute_process( COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/.gdb_history)
+
 
 # Diskimage generation
 # Python is needed

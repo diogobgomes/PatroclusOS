@@ -1,5 +1,5 @@
 /**
- * @file vga.h
+ * @file basic_io.h
  * @author Diogo Gomes
  * @brief Header file for vga.c, the basic bootloader output
  * @version 0.1
@@ -21,6 +21,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdarg.h>
 
 enum vga_color {
 	VGA_COLOR_BLACK = 0,
@@ -43,6 +44,8 @@ enum vga_color {
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
+
+#define VGA_MEM_LOCATION 0xB8000
 
 /**
  * @brief Returns the correct background/foreground color for some entry
@@ -112,14 +115,46 @@ int terminal_write(const char* data, size_t size);
  */
 int terminal_write_string(const char* data);
 
+/**
+ * @brief Clears the screen with black
+ * 
+ */
+void terminal_clear(void);
 
+/**
+ * @brief Scrolls terminal by one line
+ * 
+ */
+void terminal_scroll(void);
 
+/**
+ * @brief Basic version of printf from stdio, to be used for now
+ * 
+ * @param fmt Formatted string
+ * @param ... Extra arguments
+ * @return int Number of written bytes
+ */
+int bprintf(const char* fmt, ...);
 
+/**
+ * @brief Get the correct color code
+ * 
+ * @param fg Foreground color
+ * @param bg Background color
+ * @return uint8_t Desired color code
+ */
 INLINE uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) 
 {
 	return (uint8_t) fg | (uint8_t) bg << 4;
 }
  
+/**
+ * @brief Get the vga entry code
+ * 
+ * @param uc Character to write
+ * @param color Color code, obtained from vga_entry_color
+ * @return uint16_t Desired vga entry code, to be written to memory
+ */
 INLINE uint16_t vga_entry(unsigned char uc, uint8_t color) 
 {
 	return (uint16_t) uc | (uint16_t) color << 8;

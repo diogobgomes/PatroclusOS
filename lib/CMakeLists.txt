@@ -16,8 +16,10 @@ include(${CMAKE_SOURCE_DIR}/include/sources.cmake)
 # VARIABLES
 set(
     LIB_SRC_LIST
-    basic_io/vga.c
+    basic_io/basic_io.c
     string/string.c
+    hidden/stdio_format.c
+    stdlib/xtoa.c
 )
 
 add_library(

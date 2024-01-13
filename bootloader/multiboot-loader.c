@@ -17,24 +17,35 @@
 #include <sys/elf.h>
 #include <bootloader/multiboot-loader.h>
 #include <klib/string.h>
-#include <klib/vga.h>
+#include <klib/basic_io.h>
 
 uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* mem_upper,uint32_t boot_device) {
     terminal_initialize();
-    terminal_write_string("Successful jump to 32-bit protected mode, entering _multiboot_main...\n");
+    bprintf("\n\n\n\n\n\n\n\n\n\n\n\n");
 
 
+    //bprintf("This is a test\n%s\nWhat about ints? Look at %i","Now of strings\nWhich can do this\n",123);
+    //bprintf("And now try hex? %x\nAnd now of escape%%And can write char %c aj",12,'x');
+
+    //bprintf("Ti");
+
+    //terminal_write_string("\n\n");
+
+    
+    bprintf("Successful jump to 32-bit protected mode, entering _multiboot_main...\n");
+
+    bprintf("This is a test of int %i\n",0);
     // Find the header in our kernel
     const struct multiboot_header *header = multiboot_header_search(ptr);
 
     if(!header)
     {
-        terminal_write_string("Couldn't find multiboot header, aborting!");
+        bprintf("Couldn't find multiboot header, aborting!");
         return NULL; // If we failed to find the header, return 0
     }
 
     //TODO when we implement hex, say where it was found
-    terminal_write_string("Found multiboot header\n");
+    bprintf("Found multiboot header at address 0x%x\n",header);
 
     struct multiboot_info_structure *info_table = (struct multiboot_info_structure*) (ptr - MULTIBOOT_INFO_SIZE);
 
@@ -50,7 +61,7 @@ uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* m
         if(info_table->mem_upper == 0) // Memory was too large for uint32_t, we're not in 32-bit
         {
             info_table->mem_upper = 0;
-            terminal_write_string("Size of upper memory found was too big for uint32_t. You sure this is a 32-bit PC? Aborting!");
+            bprintf("Size of upper memory found was too big for uint32_t. You sure this is a 32-bit PC? Aborting!");
             return NULL;
         }
 
@@ -74,25 +85,29 @@ uint8_t* _multiboot_main(uint8_t* ptr,const uint16_t* mem_lower,const uint8_t* m
         return NULL; // This is actually the multiboot standard, hey!
     }
 
-    terminal_write_string("Everything was fine with the multiboot header, going for ELF loading...\n");
+    bprintf("Everything was fine with the multiboot header, going for ELF loading...\n");
 
     // Do the elf loading!
     elf32_Ehdr *elf_header = (elf32_Ehdr*) ptr;
     if(!(elf_check_file(elf_header)))
     {
-        terminal_write_string("Something was wrong with the ELF header, or we don't support it, aborting!");
+        bprintf("Something was wrong with the ELF header, or we don't support it, aborting!");
         return NULL;
     }
 
     if(!(elf_load(elf_header))) // Here we actually do the loading, cool
     {
-        terminal_write_string("Something went wrong with loading, aborting!");
+        bprintf("Something went wrong with loading, aborting!");
         return NULL; 
     }
     //asm ("movl $0xfafa,%eax;");
     //asm ("hlt;");
 
-    terminal_write_string("Everything is more than amazing, jump to kernel!\n");
+    bprintf("Everything is more than amazing, jump to kernel!\n");
+
+    //terminal_write_string("asfg\n\n\n\ntry\n\ntut\n\n\n\n\n\n\n");
+    //terminal_write_string("1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n");
+    //terminal_write_string("Here\nThere\nEverywhere");
 
     return (uint8_t *) elf_header->e_entry;
 
@@ -169,14 +184,18 @@ bool elf_load(elf32_Ehdr *header ) {
     elf32_Phdr* ph = (elf32_Phdr*)((unsigned char*)header + header->e_phoff);
     elf32_Phdr* eph = ph + header->e_phnum;
 
-
-    for (; ph < eph ; ph += header->e_phentsize)
+    for (; ph < eph; ph =  (elf32_Phdr*) (((uint8_t*)ph) + header->e_phentsize))
+    // Conversions inside for are necessary for pointer arithmetic to work
+    // e_phnum is in bytes, but pointer arithmetic will assume size
     {
+        bprintf("Found segment at 0x%x, of type %i\n",ph,ph->p_type);
+
         if( !(elf_check_prog_header(ph)) ) return false; // We've hit something
         if( ph->p_type != PT_LOAD ) continue; // We don't care about these
         if( ph->p_memsz == 0 ) continue; // These are also not gonna be loaded
         elf32_Phdr *dest = (elf32_Phdr*) ph->p_vaddr;
         const elf32_Phdr *src = (elf32_Phdr*)((unsigned char*)header + ph->p_offset);
+        
         // Copy it!
         memcpy(dest,src,ph->p_filesz);
 
