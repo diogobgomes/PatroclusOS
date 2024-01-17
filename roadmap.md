@@ -7,7 +7,7 @@
  Later on, get build system, organize project. We've got an hello world, get on it.
 
 ## Priorities
-- [ ] Bootloader
+- [x] Bootloader
 - [x] Project File structure
 - [x] Build system
 
@@ -16,3 +16,7 @@ I'm opting for a 2 stage design: stage0, the first 512 bytes, loads stage1, and 
 
 - [x] Stage0
 - [x] Stage1
+
+## Kernel
+- [ ] GDT
+- [ ] You know what, we actually are gonna go for x86_64
