@@ -54,7 +54,7 @@ add_executable(kernel.bin)
 target_sources( kernel.bin
     PUBLIC
     boot.S
-    kernel.c
+    kernel.cpp
 )
 
 # Make sure dummy targets compile
@@ -83,7 +83,7 @@ execute_process( COMMAND ${CMAKE_CXX_COMPILER} -print-file-name=crtend.o OUTPUT_
 #set( CRTI_O "$<TARGET_OBJECTS:kcrti_dummy>")
 set( CRTI_O "crti.o")
 
-set( CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_COMPILER} <CMAKE_CXX_LINK_FLAGS> <FLAGS> ${CRTBEGIN_O} <OBJECTS> -o <TARGET> <LINK_LIBRARIES> ${CRTEND_O} ${KERNEL_LINK_OPTIONS}" )
+set( CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_COMPILER} <CMAKE_CXX_LINK_FLAGS> <FLAGS> crti.S.obj ${CRTBEGIN_O} <OBJECTS> -o <TARGET> <LINK_LIBRARIES> ${KERNEL_LINK_OPTIONS} ${CRTEND_O} crtn.S.obj" )
 set( CMAKE_C_LINK_EXECUTABLE "${CMAKE_C_COMPILER} <CMAKE_C_LINK_FLAGS> <FLAGS> crti.S.obj ${CRTBEGIN_O} <OBJECTS> -o <TARGET> <LINK_LIBRARIES> ${KERNEL_LINK_OPTIONS} ${CRTEND_O} crtn.S.obj" )
 
 #add_custom_target(

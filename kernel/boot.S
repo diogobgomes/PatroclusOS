@@ -45,12 +45,15 @@ _start:
     movl $stack_top, %esp
     movl $stack_top, %ebp
 
+    push %ebx
+    push %eax
+
 
 
     # Call global contructors
     call _init
 
-    mov $0x3142,%eax
+    #mov $0x3142,%eax
 
     #jmp 1b
 
@@ -63,4 +66,56 @@ _start:
 1:  hlt
     jmp 1b
     
+#.code32
+#.data
+#gdt_start:
+#gdt_null_segment:
+#    .quad 0
+#gdt_kernel_code_segment:
+#    .word 0xffff        # Limit (Entire space)
+#    .word 0x0000        # Base (0)
+#    .byte 0             # Base
+#    .byte 0x9A          # Access byte (kernel code)
+#    .byte 0b11001111    # Limit + flags
+#    .byte 0             # Base
+#
+#gdt_kernel_data_segment:
+#    .word 0xffff        # Limit
+#    .word 0x0000        # Base
+#    .byte 0             # Base
+#    .byte 0x92          # Access byte (kernel data)
+#    .byte 0b11001111    # Limit + flags
+#    .byte 0             # Base
+#
+#gdt_user_code_segment:
+#    .word 0xffff        # Limit
+#    .word 0x0000        # Base
+#    .byte 0             # Base
+#    .byte 0xfa          # Access byte (user code)
+#    .byte 0b11001111    # Limit + flags
+#    .byte 0             # Base
+#
+#gdt_user_data_segment:
+#    .word 0xffff        # Limit
+#    .word 0x0000        # Base
+#    .byte 0             # Base
+#    .byte 0xf2          # Access byte (user code)
+#    .byte 0b11001111    # Limit + flags
+#    .byte 0             # Base
+#
+#gdt_task_state_segment:
+#    .word #BUG
+#
+#gdt_end:
+#.equ GDT_START, gdt_start # This is necessary, cause for some reason just doing
+#                          # .long gdt_start doesn't store the right address, and
+#                          # I can't figure out why, but this hack works
+#gdt_desc:
+#    .word gdt_end - gdt_start - 1
+#    .long GDT_START
+#    
+#
+#.equ CODE_SEGMENT, gdt_code_segment - gdt_start
+#.equ DATA_SEGMENT, gdt_data_segment - gdt_start
+
 .size _start, . - _start

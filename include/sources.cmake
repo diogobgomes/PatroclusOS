@@ -12,7 +12,8 @@ set(
     sys/multiboot.h
     klib/hidden/stdio_format.h
     klib/stdlib.h
-    kernel/kernel.h
+    kernel/kernel.hpp
+    klib/basic_cpp_io.hpp
 )
 
 list(TRANSFORM HEADER_FILES PREPEND ${CMAKE_SOURCE_DIR}/include/)

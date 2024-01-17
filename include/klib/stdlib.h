@@ -29,7 +29,23 @@ extern "C" {
  */
 char* itoa(int value, char* str, int base);
 
-char* utoa(unsigned int value, char*, int );
+/**
+ * @brief Converts a number into a string
+ * 
+ * @param value Value to be converted
+ * @param str Should be an array big enough to contain any possible value,
+ * it's MAX_INT_STR_SIZE
+ * @param base Number between 2 and 16 (should be 36, but eh)
+ * @return char* Same as str, NULL for error
+ */
+char* utoa(unsigned int value, char* str, int base);
+
+/**
+ * @brief Abort function, required by libgcc
+ * 
+ */
+__attribute__((__noreturn__))
+void abort(void);
 
 
 #ifdef __cplusplus

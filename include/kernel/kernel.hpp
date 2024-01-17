@@ -19,7 +19,11 @@ extern "C" {
 # define INLINE static inline
 #endif
 
-void kmain(void);
+#include <stdint.h>
+#include <stddef.h>
+#include <sys/multiboot.h>
+
+void kmain(uint32_t multibootMagic, multiboot_info_structure* multibootInfo);
 
 #ifdef __cplusplus
 }

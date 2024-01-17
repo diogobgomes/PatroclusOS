@@ -38,7 +38,7 @@ size_t strlen(const char* str);
  * @param size Size of memory to copy
  * @return void* Returns dstptr
  */
-void* memcpy(void* restrict dstptr, const void* restrict srcptr, size_t size);
+void* memcpy(void* __restrict dstptr, const void* __restrict srcptr, size_t size);
 
 /**
  * @brief Set a region of memory to a specific value

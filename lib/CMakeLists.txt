@@ -16,10 +16,12 @@ include(${CMAKE_SOURCE_DIR}/include/sources.cmake)
 # VARIABLES
 set(
     LIB_SRC_LIST
-    basic_io/basic_io.c
-    string/string.c
-    hidden/stdio_format.c
-    stdlib/xtoa.c
+    c/basic_io/basic_io.c
+    c/string/string.c
+    c/hidden/stdio_format.c
+    c/stdlib/xtoa.c
+    c/stdlib/abort.c
+    cpp/basic_cpp_io/terminal.cpp
 )
 
 add_library(
