@@ -139,6 +139,20 @@ struct mmap_structure_entry
     
 };
 
+struct multiboot_mod_list
+{
+    /* Addresses of the module start and end */
+    uint32_t mod_start;
+    uint32_t mod_end;
+
+    /* Module command line address (C-terminated string) */
+    uint32_t cmdline;
+
+    /* Pad to take it to 16 bytes (must be 0) */
+    uint32_t pad;
+};
+typedef struct multiboot_mod_list multiboot_module_t;
+
 /*
 struct mmap_structure_entry_write
 {
@@ -150,18 +164,28 @@ struct mmap_structure_entry_write
 
 /* Multiboot header must be contained within the first MULTIBOOT_SEARCH
    bytes of the kernel image */
-#define MULTIBOOT_SEARCH 8192
+#define MULTIBOOT_SEARCH                        8192
 
 /* Multiboot header should be 4 byte aligned */
-#define MULTIBOOT_HEADER_ALIGN 4
+#define MULTIBOOT_HEADER_ALIGN                  4
 
 /* Magic value identifying the multiboot_header */
-#define MULTIBOOT_MAGIC 0x1badb002
+#define MULTIBOOT_MAGIC                         0x1badb002
 
 /* Multiboot info structure size */
-#define MULTIBOOT_INFO_SIZE 120
+#define MULTIBOOT_INFO_SIZE                     120
 
-//uint32_t* multiboot_header_search(uint32_t* ptr);
+/* Multiboot header magic, should be in %eax */
+#define MULTIBOOT_BOOTLOADER_MAGIC              0x2BADB002
+
+/* is there basic lower/upper memory information? */
+#define MULTIBOOT_INFO_MEMORY                   0x00000001
+/* is there a boot device set? */
+#define MULTIBOOT_INFO_BOOTDEV                  0x00000002
+/* is the command-line defined? */
+#define MULTIBOOT_INFO_CMDLINE                  0x00000004
+/* are there modules to do something with? */
+#define MULTIBOOT_INFO_MODS                     0x00000008
 
 #ifdef __cplusplus
 }

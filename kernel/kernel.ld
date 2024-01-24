@@ -1,37 +1,42 @@
 ENTRY(_start)
-OUTPUT_FORMAT("elf32-i386")
-OUTPUT_ARCH("i386")
-phys = 3M;
+OUTPUT_FORMAT("elf64-x86-64")
+
+KERNEL_VMA = 0xFFFFFFFF80000000;
+KERNEL_PHYS = 3M;
 
 /* Tell linker where to put shit */
 SECTIONS
 {
     /* Where to begin putting sections */
-    . = phys;
+    . = KERNEL_VMA;
 
-    /* Put the header first, and then the .text section */
-    .text BLOCK(4K) : ALIGN(4K)
+    .text : AT(ADDR(.text) - KERNEL_VMA + KERNEL_PHYS)
     {
-        *(.multiboot_header)
+        _code_ = .;
         *(.text)
+        *(.rodata*)
+        . = ALIGN(4096);
     }
 
-    /* Read-only data */
-    .rodata BLOCK(4K) : ALIGN(4K)
+    .eh_frame : AT(ADDR(.eh_frame) - KERNEL_VMA + KERNEL_PHYS)
     {
-        *(.rodata)
+        _ehframe = .;
+        *(.eh_frame)
+        . = ALIGN(4096);
     }
 
-    /* Read-write data (initialized) */
-    .data BLOCK(4K) : ALIGN(4K)
+    .bss : AT(ADDR(.bss) - KERNEL_VMA + KERNEL_PHYS)
     {
-        *(.data)
-    }
-
-    /* Read-write data (uninitialized) and stack */
-    .bss BLOCK(4K) : ALIGN(4K)
-    {
-        *(COMMON)
+        _bss = .;
         *(.bss)
+        *(COMMON)
+        . = ALIGN(4096);
+    }
+
+    _end = .;
+
+    /DISCARD/ :
+    {
+        *(.comment)
     }
 }

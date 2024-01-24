@@ -2,5 +2,4 @@ label: dos
 unit: sectors
 sector-size: 512
 
-start=        2048, size=        2048, type=c, bootable
-start=        4096, size=       20480, type=c
+start=        2048, size=       22528, type=c, bootable

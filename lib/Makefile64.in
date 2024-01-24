@@ -1,0 +1,61 @@
+#@START_HEADER
+# LIB32 MAKEFILE - v0.2
+#
+# Not ready to be used as Makefile, this is a template, that is used by config.sh
+# to write the final Makefile. If you haven't already, run the config.sh script!
+#
+#
+# 2024 Diogo Gomes
+
+#@END_HEADER
+
+ifneq ($(MADE_CONFIG),true)
+$(error We're not properly configured, run ./configure!!)
+endif
+
+override SHELL:=/bin/bash
+include $(ROOTSRCDIR)/config/config.mk
+include $(ROOTSRCDIR)/config/output.mk
+include ../progs.mk
+
+include $(ROOTSRCDIR)/lib/sources64.mk
+
+CFLAGS64:=$(CFLAGS32) -D__lib64__
+CXXFLAGS64:=$(CXXFLAGS32) -D__lib64__
+
+SUBDIRS:=$(shell find $(ROOTSRCDIR)/lib -type d)
+
+# Generate rules
+define generateRulesAS
+%.o: $(1)/%.S
+	$$(call run_command, $$(AS64) -MD -c $$< -o $$@ $$(CFLAGS64), "AS")
+endef
+
+define generateRulesCC
+%.o: $(1)/%.c
+	$$(call run_command, $(CC64) -MD -c $$< -o $$@ $(CFLAGS64), "CC")
+endef
+
+define generateRulesCXX
+%.o: $(1)/%.cpp
+	$$(call run_command, $$(CXX64) -MD -c $$< -o $$@ $$(CXXFLAGS64), "CXX")
+endef
+
+.PHONY: all clean
+
+all: lib64.ar
+
+lib64.ar: $(OBJS)
+	$(call run_command, $(AR) rcs $@ $(OBJS), "Archiving")
+
+# Generate compilation rules
+$(foreach subdir, $(SUBDIRS), $(eval $(call generateRulesAS, $(subdir))))
+$(foreach subdir, $(SUBDIRS), $(eval $(call generateRulesCC, $(subdir))))
+$(foreach subdir, $(SUBDIRS), $(eval $(call generateRulesCXX, $(subdir))))
+
+clean:
+	-@rm -f init.bin
+	-@rm -f $(shell find . -name '*.o')
+	-@rm -f $(shell find . -name '*.d')
+
+-include $(OBJS:.o=.d)

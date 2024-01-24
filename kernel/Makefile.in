@@ -1,0 +1,48 @@
+#@START_HEADER
+# KERNEL MAKEFILE - v0.2
+#
+# Not ready to be used as Makefile, this is a template, that is used by config.sh
+# to write the final Makefile. If you haven't already, run the config.sh script!
+#
+#
+# 2024 Diogo Gomes
+
+#@END_HEADER
+
+ifneq ($(MADE_CONFIG),true)
+$(error We're not properly configured, run ./configure!!)
+endif
+
+override SHELL:=/bin/bash
+include $(ROOTSRCDIR)/config/config.mk
+include $(ROOTSRCDIR)/config/output.mk
+include ../progs.mk
+
+include $(ROOTSRCDIR)/kernel/sources.mk
+
+CFLAGS64:=$(CFLAGS64) -D__kernel__
+CXXFLAGS64:=$(CXXFLAGS64) -D__kernel__
+
+.PHONY: all clean
+
+all: kernel.bin
+
+# Careful here, -lgcc must be positioned as the last linked library (for some idiotic reason)
+kernel.bin: $(OBJS) $(LINKER)
+	$(call run_command, $(LD64) -T $(LINKER) -o $@ $(OBJS) $(LIBS) $(CXXFLAGS64) $(LDFLAGS64), "LD")
+
+%.o: $(ROOTSRCDIR)/kernel/%.S
+	$(call run_command, $(AS64) -MD -c $< -o $@ $(CFLAGS64), "AS")
+
+%.o: $(ROOTSRCDIR)/kernel/%.c
+	$(call run_command, $(CC64) -MD -c $< -o $@ $(CFLAGS64), "CC")
+
+%.o: $(ROOTSRCDIR)/kernel/%.cpp
+	$(call run_command, $(CXX64) -MD -c $< -o $@ $(CXXFLAGS64), "CXX")
+
+clean:
+	-@rm -f kernel.bin
+	-@rm -f $(shell find . -name '*.o')
+	-@rm -f $(shell find . -name '*.d')
+
+-include $(OBJS:.o=.d)

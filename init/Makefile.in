@@ -1,0 +1,48 @@
+#@START_HEADER
+# INIT MAKEFILE - v0.2
+#
+# Not ready to be used as Makefile, this is a template, that is used by config.sh
+# to write the final Makefile. If you haven't already, run the config.sh script!
+#
+#
+# 2024 Diogo Gomes
+
+#@END_HEADER
+
+ifneq ($(MADE_CONFIG),true)
+$(error We're not properly configured, run ./configure!!)
+endif
+
+override SHELL:=/bin/bash
+include $(ROOTSRCDIR)/config/config.mk
+include $(ROOTSRCDIR)/config/output.mk
+include ../progs.mk
+
+include $(ROOTSRCDIR)/init/sources.mk
+
+CFLAGS32:=$(CFLAGS32) -D__init__
+CXXFLAGS32:=$(CXXFLAGS32) -D__init__
+
+.PHONY: all clean
+
+all: init.bin
+
+# Careful here, -lgcc must be positioned as the last linked library (for some idiotic reason)
+init.bin: $(OBJS) $(LINKER)
+	$(call run_command, $(LD32) -T $(LINKER) -o $@ $(OBJS) $(LIBS) $(CXXFLAGS32) $(LDFLAGS32), "LD")
+
+%.o: $(ROOTSRCDIR)/init/%.S
+	$(call run_command, $(AS32) -MD -c $< -o $@ $(CFLAGS32), "AS")
+
+%.o: $(ROOTSRCDIR)/init/%.c
+	$(call run_command, $(CC32) -MD -c $< -o $@ $(CFLAGS32), "CC")
+
+%.o: $(ROOTSRCDIR)/init/%.cpp
+	$(call run_command, $(CXX32) -MD -c $< -o $@ $(CXXFLAGS32), "CXX")
+
+clean:
+	-@rm -f init.bin
+	-@rm -f $(shell find . -name '*.o')
+	-@rm -f $(shell find . -name '*.d')
+
+-include $(OBJS:.o=.d)

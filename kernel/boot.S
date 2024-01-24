@@ -42,16 +42,16 @@ _start:
 
     #sti
 
-    movl $stack_top, %esp
-    movl $stack_top, %ebp
+    mov $stack_top, %rsp
+    mov $stack_top, %rbp
 
-    push %ebx
-    push %eax
+    #pushl %ebx
+    #pushl %eax
 
 
 
     # Call global contructors
-    call _init
+    #call _init
 
     #mov $0x3142,%eax
 

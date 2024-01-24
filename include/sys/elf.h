@@ -9,10 +9,9 @@
  * 
  */
 
-#include <stdint.h>
+#pragma once
 
-#ifndef _ELF_H
-#define _ELF_H 1
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,6 +37,7 @@ extern "C" {
 
 #define ELFDATA2LSB     (1) // Little endian
 #define ELFCLASS32      (1) // 32-bit architecture
+#define ELFCLASS64      (2) // 64-bit architecture
 
 /* ELF file types */
 #define ET_NONE         (0) // No file type
@@ -50,13 +50,14 @@ extern "C" {
 
 /* Machine type */
 #define EM_386          (3) // Intel 80386
+#define EM_X86_64       (62) // AMD x86-64
 
 /* Versions */
 #define EV_NONE         (0) // Invalid version
 #define EV_CURRENT      (1) // Current version
 
 /**
- * @brief ELF header structure, present at the beginning of every file
+ * @brief ELF32 header structure, present at the beginning of every file
  * 
  */
 typedef struct
@@ -106,6 +107,56 @@ typedef struct
 } elf32_Ehdr ;
 
 /**
+ * @brief ELF64 header structure, present at the beginning of every file
+ * 
+ */
+typedef struct
+{
+    /* ELF identification field, always equal for all ELF file, access through elf_Ident type*/
+    uint8_t             e_ident[ELF_NIDENT];
+
+    /* Identifies the object file type, for kernel should be EXEC */
+    uint16_t            e_type;
+
+    /* Specifies the required architecture of an individual file, should be Intel 80386 */
+    uint16_t            e_machine;
+    
+    /* Identifies the object file version */
+    uint32_t            e_version;
+
+    /* Program entry point, to which the loader transfers control */
+    uint64_t            e_entry;
+
+    /* Holds the program header table's file offset in bytes, 0 for no table */
+    uint64_t            e_phoff;
+
+    /* Holds the section header table's file offset in bytes, 0 for no table */
+    uint64_t            e_shoff;
+
+    /* Processor-specific flags associated with the file */
+    uint32_t            e_flags;
+
+    /* ELF header size in bytes */
+    uint16_t            e_ehsize;
+
+    /* Size in bytes of entries in the file's program header table */
+    uint16_t            e_phentsize;
+
+    /* Number of entries in the program header table, 0 if no table */
+    uint16_t            e_phnum;
+
+    /* Size in bytes of section headers */
+    uint16_t            e_shentsize;
+
+    /* Number of entries in the section header table */
+    uint16_t            e_shnum;
+
+    /* Section header table index of the entry associated with the section name string table. SHN_UNDEF if no section */
+    uint16_t            e_shstrndx;
+
+} elf64_Ehdr ;
+
+/**
  * @brief Indent for access to the ELF header e_ident
  * 
  */
@@ -141,7 +192,7 @@ enum elf_Ident {
 #define PT_HIPROC       0x7fffffff
 
 /**
- * @brief Program header, defines information about how to load the ELF into memory
+ * @brief Program header (32-bit), defines information about how to load the ELF into memory
  * 
  */
 typedef struct
@@ -171,9 +222,39 @@ typedef struct
     uint32_t            p_align;
 } elf32_Phdr;
 
+/**
+ * @brief Program header (32-bit), defines information about how to load the ELF into memory
+ * 
+ */
+typedef struct
+{
+    /* What kind of segment this array element describes */
+    uint32_t            p_type;
+
+    /* Flags relevant to the segment */
+    uint32_t            p_flags;
+
+    /* Offset from the beginning of the file at which the first byte of this resides */
+    uint64_t            p_offset;
+
+    /* Virtual address at which the first byte of the segment resides in memory */
+    uint64_t            p_vaddr;
+
+    /* Segment's physical address (usually ignored) */
+    uint64_t            p_paddr;
+
+    /* Number of bytes in the file image that the segment takes up, may be 0 */
+    uint64_t            p_filesz;
+
+    /* Number of bytes in the memory image of the segment, may be 0 (.bss will have memsize != filesize) */
+    uint64_t            p_memsz;
+
+    /* Program alignment requirements */
+    uint64_t            p_align;
+} elf64_Phdr;
+
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif

@@ -1,0 +1,100 @@
+#@START_HEADER
+# TOP LEVEL MAKEFILE - v0.2
+#
+# Not ready to be used as Makefile, this is a template, that is used by config.sh
+# to write the final Makefile. If you haven't already, run the config.sh script!
+#
+#
+# 2024 Diogo Gomes
+
+#@END_HEADER
+
+# config.sh will put some stuff here for us
+
+ifneq ($(MADE_CONFIG),true)
+$(error We're not properly configured, run ./configure!!)
+endif
+
+override SHELL:=/bin/bash
+include $(ROOTSRCDIR)/config/config.mk
+include $(ROOTSRCDIR)/config/output.mk
+
+include progs.mk
+
+# Subdirectories
+SUBDIRS:=kernel init lib32 lib64
+MOUNTDIR:=mount
+
+CLEANSUBDIRS:=$(SUBDIRS:%=clean-%)
+
+.PHONY: all clean
+.PHONY: $(SUBDIRS)
+
+all: $(SUBDIRS)
+
+kernel: lib64
+init: lib32
+
+$(SUBDIRS):
+	@$(MAKE) -C $@
+
+#@START_DISKIMAGE
+.PHONY: diskimage qemu qemu-debug
+
+diskimage: all $(MOUNTDIR)/kernel.bin
+#	dd if  blah blah inject stage0
+#	Inject stage1
+
+$(MOUNTDIR)/kernel.bin: all
+	@printf "Copying $(CYAN)kernel.bin$(NC) to mountdir...\n"
+	@cp kernel/kernel.bin $(MOUNTDIR)/kernel.bin
+
+qemu: diskimage
+	@printf "Starting qemu using the diskimage...\n"
+	@qemu-system-x86_64 -drive file=$(DISKIMAGE),format=raw -no-reboot -no-shutdown
+
+qemu-debug: diskimage
+	@printf "Starting qemu with debug enabled using the diskimage...\n"
+	@qemu-system-x86_64 -drive file=$(DISKIMAGE),format=raw -no-reboot -no-shutdown -s -S
+
+#@END_DISKIMAGE
+
+#@START_GRUB
+.PHONY: iso qemu-grub qemu-grub-debug
+
+iso: all
+	@printf "Creating $(CYAN)PatroclusOS.iso$(NC) using grub...\n"
+	@cp kernel/kernel.bin isodir/boot/kernel.bin
+	@cp init/init.bin isodir/boot/init.bin
+	@cp ${ROOTSRCDIR}/config/grub.cfg isodir/boot/grub/grub.cfg
+	@$(GRUB_PROG) -o PatroclusOS.iso isodir/
+
+qemu-grub: iso
+	@printf "Starting qemu using the iso...\n"
+	@qemu-system-x86_64 -cdrom PatroclusOS.iso -d int,cpu_reset -no-reboot -no-shutdown
+
+qemu-grub-debug: iso
+	@printf "Starting qemu with debug enabled using the iso...\n"
+	@qemu-system-x86_64 -cdrom PatroclusOS.iso -d int,cpu_reset -no-reboot -no-shutdown -s -S
+
+#@END_GRUB
+
+clean: $(CLEANSUBDIRS)
+	-@rm -f $(shell find . -name '*.bin')
+	-@rm -f $(shell find . -name '*.o')
+	-@rm -f $(shell find . -name '*.d')
+	@printf "$(GREEN)Clean done!\n"
+
+$(CLEANSUBDIRS):
+	@$(MAKE) -C $(@:clean-%=%) clean
+
+#TODO add distclean
+
+#@START_DOCS
+.PHONY: docs
+
+docs:
+	@printf "Building documentation...\n"
+	@doxygen Doxyfile
+
+#@END_DOCS
