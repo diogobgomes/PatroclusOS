@@ -7,7 +7,10 @@
 
 OBJS:=init.o \
 main.o \
-init_common.o
+elfLoader.o \
+longMode.o \
+enterKernel.o \
+paging.o
 
 LINKER:=$(ROOTSRCDIR)/init/init.ld
 

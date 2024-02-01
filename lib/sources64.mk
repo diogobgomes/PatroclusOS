@@ -7,8 +7,6 @@
 
 OBJS:=basic_io.o \
     string.o \
-    stdio_format.o \
-    xtoa.o \
     abort.o \
-    terminal.o
+    framebuffer_io.o
 	

@@ -57,5 +57,6 @@ clean:
 	-@rm -f init.bin
 	-@rm -f $(shell find . -name '*.o')
 	-@rm -f $(shell find . -name '*.d')
+	-@rm -f $(shell find . -name '*.ar')
 
 -include $(OBJS:.o=.d)

@@ -27,7 +27,7 @@ extern "C" {
  * can be positive or negative, any other base assume positive
  * @return char* Same as str, NULL for error
  */
-char* itoa(int value, char* str, int base);
+//char* itoa(int value, char* str, int base);
 
 /**
  * @brief Converts a number into a string
@@ -38,7 +38,7 @@ char* itoa(int value, char* str, int base);
  * @param base Number between 2 and 16 (should be 36, but eh)
  * @return char* Same as str, NULL for error
  */
-char* utoa(unsigned int value, char* str, int base);
+//char* utoa(unsigned int value, char* str, int base);
 
 /**
  * @brief Abort function, required by libgcc

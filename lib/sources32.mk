@@ -5,5 +5,5 @@
 #
 # 2024 Diogo Gomes
 
-OBJS:=stdlib.o \
-framebuffer_io.o
+OBJS:=framebuffer_io.o \
+string.o

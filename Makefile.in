@@ -75,7 +75,7 @@ qemu-grub: iso
 
 qemu-grub-debug: iso
 	@printf "Starting qemu with debug enabled using the iso...\n"
-	@qemu-system-x86_64 -cdrom PatroclusOS.iso -d int,cpu_reset -no-reboot -no-shutdown -s -S
+	@$(ROOTSRCDIR)/tools/build-scripts/qemu-grub-debug.sh PatroclusOS.iso
 
 #@END_GRUB
 

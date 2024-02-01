@@ -19,6 +19,7 @@
 .long FLAGS
 .long CHECKSUM
 
+
 # BSS
 # Stack, and paging tables
 .section .bss
@@ -28,7 +29,7 @@ p4_table:
 p3_table:
 .skip 4096
 p2_table:
-.skip 4096
+.skip 8192 # 4096 * 2, we'll use two p2 tables
 stack_bottom:
 .skip 16384 # 16 KiB
 stack_top:
@@ -39,17 +40,25 @@ stack_top:
 .extern lmain
 .global _start
 .type _start, @function
+
 # Init entry point
 _start:
     cli # Just in case they were on
 
     # Setup stack
     mov $stack_top, %esp
-    mov $stack_bottom, %ebp
+    mov $stack_top, %ebp
+
+    # We don't bother with the GDT since the bootloader sets one up for us
+    # (grub does this, and I pinky promise my own implementation also will)
 
     # Push variables to the stack
     push %ebx # Multiboot info
     push %eax # Multiboot flag, for checking
+
+    # Push also beggining of paging, to be used
+    mov $p4_table, %eax
+    push %eax
 
     call lmain
 

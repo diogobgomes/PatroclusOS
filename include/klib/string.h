@@ -7,11 +7,10 @@
  * 
  */
 
+#pragma once
+
 #include <stdint.h>
 #include <stddef.h>
-
-#ifndef _BOOTLOADER_STRING_H
-#define _BOOTLOADER_STRING_H 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,10 +71,7 @@ int memcmp(const void* ptr1, const void* ptr2, size_t size);
  */
 void* memmove(void* dstptr, const void* srcptr, size_t size);
 
-
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif

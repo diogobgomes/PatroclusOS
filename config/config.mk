@@ -19,12 +19,12 @@ CXXFLAGS_COMMON+= -I $(ROOTSRCDIR)/include
 
 # Warnings
 CWARNINGS := -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-align \
-            -Wwrite-strings -Wmissing-prototypes -Wmissing-declarations \
+            -Wwrite-strings -Wmissing-prototypes  \
             -Wredundant-decls -Wnested-externs -Winline -Wno-long-long \
             -Wuninitialized -Wconversion -Wstrict-prototypes
 CXXWARNINGS:=-pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
 	 					-Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
-						-Winit-self -Wlogical-op -Wmissing-declarations \
+						-Winit-self -Wlogical-op  \
 						-Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
 						-Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion \
 						-Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 \
@@ -34,9 +34,9 @@ CXXWARNINGS:=-pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
 CFLAGS32:=$(CFLAGS32)
 CXXFLAGS32:=$(CXXFLAGS32)
 LDFLAGS32:=$(LDFLAGS32)
-CFLAGS64:=$(CFLAGS64) -mcmodel=kernel
-CXXFLAGS64:=$(CXXFLAGS64) -mcmodel=kernel
-LDFLAGS64:=$(LDFLAGS64)
+CFLAGS64:=$(CFLAGS64) -mcmodel=kernel -no-pie
+CXXFLAGS64:=$(CXXFLAGS64) -mcmodel=kernel -no-pie -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse -mno-sse2
+LDFLAGS64:=$(LDFLAGS64) -mcmodel=kernel -no-pie
 
 # Final flags
 CFLAGS64:=$(CFLAGS64) $(CWARNINGS) $(CFLAGS_COMMON)
