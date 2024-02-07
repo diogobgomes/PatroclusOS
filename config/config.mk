@@ -35,7 +35,7 @@ CFLAGS32:=$(CFLAGS32)
 CXXFLAGS32:=$(CXXFLAGS32)
 LDFLAGS32:=$(LDFLAGS32)
 CFLAGS64:=$(CFLAGS64) -mcmodel=kernel -no-pie
-CXXFLAGS64:=$(CXXFLAGS64) -mcmodel=kernel -no-pie -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse -mno-sse2
+CXXFLAGS64:=$(CXXFLAGS64) -mcmodel=kernel -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -no-pie
 LDFLAGS64:=$(LDFLAGS64) -mcmodel=kernel -no-pie
 
 # Final flags

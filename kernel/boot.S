@@ -6,20 +6,22 @@
 # @version 0.1
 # @date 2023-09-01
 
+.code64
 
 # Reserve a small stack for early use, maybe later we'll set up
 # a proper one
 .section .bss
 .align 16
 stack_bottom:
-.skip 16384 # 16 KiB
+#.skip 16384 # 16 KiB
+.skip 64
 stack_top:
 
 # Kernel entry point
 .section .text
 .global _start
 .type _start, @function
-.code64
+
 _start:
     # Setup stack
     mov $stack_top, %rbx
@@ -32,8 +34,15 @@ _start:
     mov $500, %ecx
     rep stosq
 
+    mov $0x3141, %rax
+        xchgw %bx, %bx
+    push %rax
+
     # FIXME Remove from final
-    xchgw %bx, %bx
+
+
+    #cli
+    #hlt
 
     call kmain
 

@@ -15,6 +15,8 @@ enterKernel:
     pop %edx # Kentry
     pop %esi # Multiboot info
 
+    #mov %edx, (k_ptr)
+
     # Start by setting up a 64-bit GDT
     lgdt (gdt_desc)
 
@@ -30,13 +32,21 @@ enter_64:
     mov %ax, %fs
     mov %ax, %gs
 
+    xchgw %bx, %bx
+
     # Jump to kernel!
+    #mov (k_ptr), %eax
+    #.long 0xffffffff
     jmp *%edx
 
 # Should never get here
     cli
 1:  hlt
     jmp 1b
+
+#.section .data
+#k_ptr:
+#    .long 0
 
 .code32
 .section .rodata

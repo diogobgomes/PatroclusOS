@@ -1,2 +1,0 @@
-# Why do I hate build systems
-Make sucks. CMake sucks, but it sucks slightly less, which is why I changed to it. Only to discover that CMake doesn't support changing the compiler for different targets, which really sucks when you have to change to a 32-bit compiler to compile your bootloader/init, because the standard 64-bit compiler (or, more precisely, the 64-bit libgcc) won't work for 32-bit code, since multilib support has been hijacked to support -no-red-zone

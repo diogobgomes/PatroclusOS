@@ -27,7 +27,7 @@
 p4_table:
 .skip 4096
 p3_table:
-.skip 4096
+.skip 8192 # 4096 * 2, we'll need two p3 tables
 p2_table:
 .skip 8192 # 4096 * 2, we'll use two p2 tables
 stack_bottom:

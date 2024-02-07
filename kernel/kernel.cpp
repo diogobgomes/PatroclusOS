@@ -11,6 +11,5 @@
 io::_outstream<framebuffer_io::framebuffer_terminal> icout;
 
 void kmain(uint32_t multibootMagic, multiboot_info_structure* multibootInfo) {
-    /*BUG stack is corrupted*/
     return;
 }

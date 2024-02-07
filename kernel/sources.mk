@@ -6,7 +6,8 @@
 # 2024 Diogo Gomes
 
 OBJS:=boot.o \
-kernel.o
+kernel.o \
+entry.o
 
 LINKER:=$(ROOTSRCDIR)/kernel/kernel.ld
 
