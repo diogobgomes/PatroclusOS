@@ -54,7 +54,7 @@ $(foreach subdir, $(SUBDIRS), $(eval $(call generateRulesCC, $(subdir))))
 $(foreach subdir, $(SUBDIRS), $(eval $(call generateRulesCXX, $(subdir))))
 
 clean:
-	-@rm -f init.bin
+	-@rm -f lib32.ar
 	-@rm -f $(shell find . -name '*.o')
 	-@rm -f $(shell find . -name '*.d')
 	-@rm -f $(shell find . -name '*.ar')

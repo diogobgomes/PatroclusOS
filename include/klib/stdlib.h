@@ -7,8 +7,9 @@
  * 
  */
 
-#ifndef _STDLIB_H
-#define _STDLIB_H 1
+#pragma once
+
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,9 +48,18 @@ extern "C" {
 __attribute__((__noreturn__))
 void abort(void);
 
+[[noreturn,maybe_unused]] void earlyPanic(const char* str);
+[[noreturn,maybe_unused]] inline static void hang()
+{
+    while(true)
+    __asm__ __volatile__ (  "xchgw %bx, %bx\r\n"
+                            "cli\r\n"
+                            "hlt");
+}
+
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+

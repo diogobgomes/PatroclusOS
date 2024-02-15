@@ -59,11 +59,11 @@ bool elf64Loader::elf_load()
 	elf64_Phdr* ph = reinterpret_cast<elf64_Phdr*>( reinterpret_cast<uint8_t*>(_header) + _header->e_phoff ); // BUG This is buggy, no? Should be the same as the other
 	elf64_Phdr* eph = ph + _header->e_phnum;
 
-    icout.hex(); // Set terminal to hexadecimal
+    out.hex(); // Set terminal to hexadecimal
 
 	for (; ph < eph; ph = reinterpret_cast<elf64_Phdr*>( reinterpret_cast<uint8_t*>(ph) + _header->e_phentsize ))
 	{
-        icout << "Found segment at 0x" << reinterpret_cast<uint64_t>(ph)
+        out << "Found segment at 0x" << reinterpret_cast<uint64_t>(ph)
                 << " of type " << ph->p_type << " and mem size 0x" << ph->p_memsz;
 
 		if( !(checkProgramHeader(ph)) ) return false; // We've hit something
@@ -73,7 +73,7 @@ bool elf64Loader::elf_load()
 		const uint8_t *src = reinterpret_cast<uint8_t*>( reinterpret_cast<uint64_t>(_header) + ph->p_offset );
 
 		// Copy it!
-        icout << ", loading it to 0x" << reinterpret_cast<uint64_t>(dest) << "\n";
+        out << ", loading it to 0x" << reinterpret_cast<uint64_t>(dest) << "\n";
 		memcpy(dest,src,ph->p_filesz);
 
 		// Check to see if p_memsz > p_filesz

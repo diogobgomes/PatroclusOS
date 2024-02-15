@@ -1,8 +1,6 @@
 # @file boot.S
 # @author Diogo Gomes
-# @brief Small assembly stub that stis in a FAT32 partition,
-# and whose purpose is to set up the CPU to a known state,
-# and jump to the main kernel function
+# @brief Kernel trampoline code
 # @version 0.1
 # @date 2023-09-01
 
@@ -25,24 +23,14 @@ stack_top:
 _start:
     # Setup stack
     mov $stack_top, %rbx
-    xchgw %bx, %bx # FIXME Remove from final
     mov %rbx, %rsp
     mov %rbx, %rbp
 
+    # FIXME Remove from final
     mov $0xb8000, %rdi
     mov $0x1F201F201F201F20, %rax
     mov $500, %ecx
     rep stosq
-
-    mov $0x3141, %rax
-        xchgw %bx, %bx
-    push %rax
-
-    # FIXME Remove from final
-
-
-    #cli
-    #hlt
 
     call kmain
 

@@ -18,7 +18,7 @@
 #include <klib/string.h>
 #include <klib/cstdlib.hpp>
 #include <klib/io.hpp>
-#include <devices/framebuffer_io.hpp>
+#include <devices/BIOSVideoIO.hpp>
 #include "elfLoader.hpp"
 #include "paging.h"
 
@@ -42,24 +42,27 @@ void* multibootStuff(const struct multiboot_info_structure* info, uint32_t multi
 void* doElfLoad(void* mods_addr);
 
 //static framebuffer_io::framebuffer_terminal terminal;
-io::_outstream<framebuffer_io::framebuffer_terminal> icout;
+io::_outstream<io::framebuffer_terminal> out;
 
 void lmain( void* pagingArea, uint32_t multiboot_flag, const struct multiboot_info_structure* info )
 {
     // Initiate the terminal
-    framebuffer_io::framebuffer_terminal initTerminal;
-    icout.init(&initTerminal);
-    icout.clear();
+    io::framebuffer_terminal initTerminal;
+    out.init(&initTerminal);
+    out.clear();
 
     // Print header
-    initTerminal.setColor(framebuffer_io::framebuffer_terminal::vga_color::VGA_COLOR_LIGHT_GREY,
-                            framebuffer_io::framebuffer_terminal::vga_color::VGA_COLOR_BLUE);
-    icout << "Entering PatroclusOS 32-bit protected mode init.bin\n";
-    initTerminal.setColor(framebuffer_io::framebuffer_terminal::vga_color::VGA_COLOR_LIGHT_GREY,
-                            framebuffer_io::framebuffer_terminal::vga_color::VGA_COLOR_BLACK);
+    initTerminal.setColor(io::vga_color::VGA_COLOR_LIGHT_GREY,
+                            io::vga_color::VGA_COLOR_BLUE);
+    out << "Entering PatroclusOS 32-bit protected mode init.bin\n";
+    initTerminal.setColor(io::vga_color::VGA_COLOR_LIGHT_GREY,
+                            io::vga_color::VGA_COLOR_BLACK);
 
     // Get the module address from multiboot_info_structure
     void* mods_addr = multibootStuff(info,multiboot_flag);
+
+    out.hex();
+    out << "mods_addr is at " << reinterpret_cast<uint32_t>(mods_addr) << "\n";
     
     // Do the ELF loading
     void* kentry = doElfLoad(mods_addr);
@@ -77,17 +80,17 @@ void lmain( void* pagingArea, uint32_t multiboot_flag, const struct multiboot_in
     }
     
     // Now, attempting to enable paging
-    icout << "Attempting to enable paging:...";
+    out << "Attempting to enable paging:...";
 
     setupPaging( pagingArea );
 
-    icout << " apparently, it went ok?\n";
+    out << " apparently, it went ok?\n";
 
     // Paging went ok, so now jump to kernel
-    icout << "Jumping to kernel. Entry point: 0x" 
+    out << "Jumping to kernel. Entry point: 0x" 
           << reinterpret_cast<uint64_t>(kentry);
 
-    icout << ", mbinfo is at: 0x" << reinterpret_cast<uint64_t>(info) << "\n";
+    out << ", mbinfo is at: 0x" << reinterpret_cast<uint64_t>(info) << "\n";
 
     enterKernel(kentry,info);
 
@@ -95,21 +98,22 @@ void lmain( void* pagingArea, uint32_t multiboot_flag, const struct multiboot_in
 
 }
 
-[[noreturn,maybe_unused]] void hang()
-{
-    while(true)
-    __asm__ __volatile__ (  "xchgw %bx, %bx\r\n"
-                            "cli\r\n"
-                            "hlt");
-}
+//[[noreturn,maybe_unused]] void hang()
+//{
+//    while(true)
+//    __asm__ __volatile__ (  "xchgw %bx, %bx\r\n"
+//                            "cli\r\n"
+//                            "hlt");
+//}
 
+// BUG Change this to earlyPanic()
 [[noreturn,maybe_unused]] void error(const char* str)
 {
-    framebuffer_io::framebuffer_terminal* termPtr = icout.getBackEnd();
-    termPtr->setColor(framebuffer_io::framebuffer_terminal::vga_color::VGA_COLOR_LIGHT_GREY,
-                        framebuffer_io::framebuffer_terminal::vga_color::VGA_COLOR_RED);
+    io::framebuffer_terminal* termPtr = out.getBackEnd();
+    termPtr->setColor(io::vga_color::VGA_COLOR_LIGHT_GREY,
+                        io::vga_color::VGA_COLOR_RED);
     
-    icout << str;
+    out << str;
     hang();
 }
 
@@ -141,7 +145,7 @@ void* multibootStuff(const struct multiboot_info_structure* info, uint32_t multi
 
     // TODO parse the command line, need a strcmp implementation
 
-    icout << "kernel.bin is at 0x" << icout.hex() <<
+    out << "kernel.bin is at 0x" << out.hex() <<
             reinterpret_cast<uint64_t>(mods_addr) << "\n";
     
     return mods_addr;

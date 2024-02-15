@@ -151,7 +151,7 @@ struct multiboot_mod_list
     /* Pad to take it to 16 bytes (must be 0) */
     uint32_t pad;
 };
-typedef struct multiboot_mod_list multiboot_module_t;
+typedef struct multiboot_mod_list multiboot_module_t; //BUG Remove
 
 /*
 struct mmap_structure_entry_write

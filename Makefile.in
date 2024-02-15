@@ -22,7 +22,8 @@ include $(ROOTSRCDIR)/config/output.mk
 include progs.mk
 
 # Subdirectories
-SUBDIRS:=kernel init lib32 lib64
+#FIXME Get this info from the script, no reason to have it ourselves
+SUBDIRS:=bootloader kernel init lib32 lib64
 MOUNTDIR:=mount
 
 CLEANSUBDIRS:=$(SUBDIRS:%=clean-%)
@@ -34,28 +35,49 @@ all: $(SUBDIRS)
 
 kernel: lib64
 init: lib32
+bootloader: lib32
 
 $(SUBDIRS):
 	@$(MAKE) -C $@
 
 #@START_DISKIMAGE
-.PHONY: diskimage qemu qemu-debug
+.PHONY: diskimage qemu qemu-debug do_mount_dir
 
-diskimage: all $(MOUNTDIR)/kernel.bin
+diskimage: all $(MOUNTDIR)/kernel.bin $(MOUNTDIR)/init.bin do_mount_dir
+	@printf "Injecting $(CYAN)stage0.bin$(NC) in diskimage...\n"
+	@dd if=bootloader/stage0.bin of=$(DISKIMAGE) conv=notrunc bs=440 count=1
+	@printf "Injecting $(CYAN)stage1.bin$(NC) in diskimage...\n"
+	@dd if=bootloader/stage1.bin of=$(DISKIMAGE) conv=notrunc bs=512 seek=1 count=$(shell ls -l bootloader/stage1.bin | awk 'function ceil(x,y){y=int(x); return(x>y?y+1:y)} {print ceil($$5/512)}')
+	@sync
+#	@dd if=bootloader/stage0.bin of=$(DISKIMAGE) conv=notrunc bs=512 seek=1 count=1
 #	dd if  blah blah inject stage0
 #	Inject stage1
 
-$(MOUNTDIR)/kernel.bin: all
+# Attempt to mount directory
+do_mount_dir: $(MOUNTDIR)
+	@printf "Check if we need to mount: "
+	@sudo -A ${ROOTSRCDIR}/tools/build-scripts/mountdirs.sh $(MOUNTDIR) $(LOOPBACK) $(DISKIMAGE) $(shell whoami)
+
+$(MOUNTDIR):
+	@mkdir -p $(MOUNTDIR)
+
+$(MOUNTDIR)/kernel.bin: all do_mount_dir
 	@printf "Copying $(CYAN)kernel.bin$(NC) to mountdir...\n"
 	@cp kernel/kernel.bin $(MOUNTDIR)/kernel.bin
+	@sync
+
+$(MOUNTDIR)/init.bin: all do_mount_dir
+	@printf "Copying $(CYAN)init.bin$(NC) to mountdir...\n"
+	@cp init/init.bin $(MOUNTDIR)/init.bin
+	@sync
 
 qemu: diskimage
 	@printf "Starting qemu using the diskimage...\n"
-	@qemu-system-x86_64 -drive file=$(DISKIMAGE),format=raw -no-reboot -no-shutdown
+	@qemu-system-x86_64 -drive file=$(DISKIMAGE),format=raw -d int,cpu_reset -no-reboot -no-shutdown
 
 qemu-debug: diskimage
 	@printf "Starting qemu with debug enabled using the diskimage...\n"
-	@qemu-system-x86_64 -drive file=$(DISKIMAGE),format=raw -no-reboot -no-shutdown -s -S
+	@qemu-system-x86_64 -drive file=$(DISKIMAGE),format=raw -d int,cpu_reset -no-reboot -no-shutdown -s -S
 
 #@END_DISKIMAGE
 

@@ -71,6 +71,24 @@ int memcmp(const void* ptr1, const void* ptr2, size_t size);
  */
 void* memmove(void* dstptr, const void* srcptr, size_t size);
 
+/**
+ * @brief Compare two strings
+ * 
+ * @param str1 
+ * @param str2 
+ * @return int 0 if they are equal, >0 if first non-matching character is greater in str1, and <0 for opposite
+ */
+int strcmp(const char* str1, const char* str2);
+
+/**
+ * @brief Copy src to dest, including the terminating char, and stopping there
+ * 
+ * @param src 
+ * @param dest 
+ * @return char* Returns dest
+ */
+char* strcpy(char* dest, const char* src);
+
 #ifdef __cplusplus
 }
 #endif

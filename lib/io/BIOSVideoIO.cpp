@@ -1,7 +1,7 @@
 /**
- * @file framebuffer_io.cpp
+ * @file BIOSVideoIO.cpp
  * @author Diogo Gomes (dbarrosgomes@gmail.com)
- * @brief Definitions from framebuffer_io.hpp
+ * @brief Definitions from BIOSVideoIO.hpp
  * @version 0.1
  * @date 2024-01-22
  * 
@@ -12,49 +12,49 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <klib/string.h>
-#include <devices/framebuffer_io.hpp>
+#include <devices/BIOSVideoIO.hpp>
 
-void framebuffer_io::framebuffer_terminal::clear()
+void io::framebuffer_terminal::clear()
 {
     for (size_t y = 0; y < vga_height; y++)
     {
         for (size_t x = 0; x < vga_width; x++)
         {
             const size_t index = y * vga_width + x;
-            buffer[index] = vga_entry(' ',color);
+            _buffer[index] = vga_entry(' ',_color);
         }
         
     }
 }
 
-void framebuffer_io::framebuffer_terminal::setColor(enum vga_color fg, enum vga_color bg)
+void io::framebuffer_terminal::setColor(enum vga_color fg, enum vga_color bg)
 {
-    color = vga_entry_color(fg,bg);
+    _color = vga_entry_color(fg,bg);
 }
 
-int framebuffer_io::framebuffer_terminal::putchar(char c)
+int io::framebuffer_terminal::putchar(char c)
 {
     if(c=='\n')
     {
         // Edge case where last line was full, and we sent a newline
-        if (fullLine)
+        if (_fullLine)
         {
-            fullLine = false;
+            _fullLine = false;
             return 0;
         }
         
-        column = 0;
-        if (++row == vga_height)
+        _column = 0;
+        if (++_row == vga_height)
         {
             scroll(1);
-            row--;
+            _row--;
         }
         return 0;
     }
 
-    fullLine = false; // Clear potential full line
+    _fullLine = false; // Clear potential full line
     
-    const size_t index = row* vga_width + column;
+    const size_t index = _row* vga_width + _column;
 
     // Check the character
     if (c < 20 || c > 126)
@@ -62,17 +62,17 @@ int framebuffer_io::framebuffer_terminal::putchar(char c)
         return 1; // Failure, character out of bounds
     }
 
-    buffer[index] = vga_entry(static_cast<unsigned char>(c), color);
+    _buffer[index] = vga_entry(static_cast<unsigned char>(c), _color);
 
     // Increment column, check if we need to change lines, or scroll
-    if (++column == vga_width)
+    if (++_column == vga_width)
     {
-        column = 0;
-        fullLine = true;
-        if (++row == vga_height)
+        _column = 0;
+        _fullLine = true;
+        if (++_row == vga_height)
         {
             scroll(1);
-            row--;
+            _row--;
         }
     }
 
@@ -81,7 +81,7 @@ int framebuffer_io::framebuffer_terminal::putchar(char c)
     
 }
 
-int framebuffer_io::framebuffer_terminal::scroll(size_t lines)
+int io::framebuffer_terminal::scroll(size_t lines)
 {
     // Check lines is number allowed
     if (lines >= vga_height)
@@ -91,7 +91,7 @@ int framebuffer_io::framebuffer_terminal::scroll(size_t lines)
 
     size_t size = vga_width * (vga_height - lines) * 2;
 
-    memmove(buffer, buffer + vga_width*lines, size);
+    memmove(_buffer, _buffer + vga_width*lines, size);
 
     // Clear last lines
     for (size_t y = vga_height - lines; y < vga_height; y++)
@@ -99,9 +99,22 @@ int framebuffer_io::framebuffer_terminal::scroll(size_t lines)
         for (size_t x = 0; x < vga_width; x++)
         {
             const size_t index = y * vga_width + x;
-            buffer[index] = vga_entry(' ',color);
+            _buffer[index] = vga_entry(' ',_color);
         }   
     }
 
     return 0;
+}
+
+bool io::framebuffer_terminal::setCursor(uint8_t row, uint8_t column)
+{
+    if (row >= vga_height || column >= vga_width)
+    {
+        return false;
+    }
+
+    _row = row;
+    _column = column;
+    return true;
+    
 }

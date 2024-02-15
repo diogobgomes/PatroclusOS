@@ -13,13 +13,11 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <stddef.h>
+#include <klib/stdlib.h>
 
 #define MAX_NUM_STR_SIZE 65
 
-namespace hidden {
-
-template <typename T> static char* _xtoa(T value, char* str, int base) {
+template <typename T> static char* xtoa(T value, char* str, int base) {
     // Test base
     if (base < 2 || base > 16)
     {
@@ -74,23 +72,3 @@ template <typename T> static char* _xtoa(T value, char* str, int base) {
     return str;
 
 }
-
-} // namespace hidden
-
-// TODO get rid of hidden::_xtoa, this should all be done here
-template <typename T> char* xtoa(T value, char *str, int base) { return hidden::_xtoa(value,str,base);}
-
-/*char* itoa(int64_t value, char* str, int base);
-char* itoa(int32_t value, char* str, int base);
-char* itoa(int16_t value, char* str, int base);
-char* itoa(int8_t value, char* str, int base);
-char* itoa(uint64_t value, char* str, int base);
-char* itoa(uint32_t value, char* str, int base);
-char* itoa(uint16_t value, char* str, int base);
-char* itoa(uint8_t value, char* str, int base);*/
-
-
-
-/*char* utoa(uint32_t value, char* str, int base);
-
-char* utoa64(uint64_t value, char* str, int base);*/

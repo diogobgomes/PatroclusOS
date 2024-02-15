@@ -15,10 +15,13 @@
 #include <stdint.h>
 #include <klib/cstdlib.hpp>
 #include <klib/string.h>
-#include <devices/framebuffer_io.hpp>
+#include <devices/BIOSVideoIO.hpp>
 #include <stdarg.h>
 
+// FIXME get rid of this
 extern "C" size_t outFormat(const char* fmt, va_list parameters, int (*putfunc)(const char* ,size_t));
+
+// FIXME add what the requirements of the backEnd class are (I think it's just putchar and clear)
 
 namespace io
 {
@@ -33,6 +36,7 @@ private:
 public:
     void clear() { _backEnd->clear(); }
 
+    // FIXME
     void init(backEnd* aaaa) { _backEnd = aaaa; _base=10; /*_backEnd->init();*/ }
 
     backEnd* getBackEnd() { return _backEnd; }
@@ -67,15 +71,6 @@ public:
         return writeString(str);
     }
 
-    //size_t writeUInt(uint64_t num);
-
-    /*
-    size_t writeNum( int64_t num, int base) {
-        char str[MAX_NUM_STR_SIZE];
-        itoa(num,str,base);
-        return writeString(str);
-    }*/
-
     template<typename T> size_t writeNum( T num ) {
         char str[MAX_NUM_STR_SIZE];
         xtoa(num,str,_base);
@@ -92,6 +87,11 @@ public:
     }
 
     auto &operator<<(const char* str) {
+        writeString(str);
+        return *this;
+    }
+
+    auto &operator<<(char* str) {
         writeString(str);
         return *this;
     }
@@ -120,4 +120,12 @@ public:
 
 } // End of namespace "io"
 
-extern io::_outstream<framebuffer_io::framebuffer_terminal> icout;
+/*#if defined(__is32__) || defined(__is64__)
+extern io::_outstream<io::framebuffer_terminal> out;
+#endif
+
+#if defined(__is16__)
+extern io::_outstream<io::realMode_terminal> out;
+#endif*/
+
+extern io::_outstream<io::framebuffer_terminal> out;

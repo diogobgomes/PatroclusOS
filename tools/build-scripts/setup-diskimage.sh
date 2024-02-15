@@ -1,5 +1,5 @@
 #!/bin/bash
-# HELPER SCRIPT FOR CMAKE
+# HELPER SCRIPT FOR MAKE
 #
 # Script to generate the initial diskimage, and partition it
 # It checks if it exists, and if so, doesn't generate it

@@ -1,0 +1,78 @@
+#@START_HEADER
+# BOOTLOADER MAKEFILE - v0.2
+#
+# Not ready to be used as Makefile, this is a template, that is used by config.sh
+# to write the final Makefile. If you haven't already, run the config.sh script!
+#
+#
+# 2024 Diogo Gomes
+
+#@END_HEADER
+
+ifneq ($(MADE_CONFIG),true)
+$(error We're not properly configured, run ./configure!!)
+endif
+
+override SHELL:=/bin/bash
+include $(ROOTSRCDIR)/config/config.mk
+include $(ROOTSRCDIR)/config/output.mk
+include ../progs.mk
+
+include $(ROOTSRCDIR)/bootloader/sources.mk
+
+CFLAGS16:=$(CFLAGS16) -D__stage0__
+CXXFLAGS16:=$(CXXFLAGS16) -D__stage0__
+CFLAGS32:=$(CFLAGS32) -D__stage1__
+CXXFLAGS32:=$(CXXFLAGS32) -D__stage1__
+
+.PHONY: all clean
+
+all: stage0.bin stage1.bin
+
+stage0.bin: $(STAGE0_OBJS) $(STAGE0_LINKER)
+	$(call run_command, $(LD32) -T $(STAGE0_LINKER) -o $@ $(STAGE0_OBJS) $(LDFLAGS32) $(CXXFLAGS16), "LD")
+	@if test $$(ls -l stage0.bin | awk '{print $$5}') -gt 440; then \
+	printf "$(RED)Error:$(NC) stage0.bin is way too big!\n"; \
+	rm stage0.bin; \
+	false; \
+	fi
+
+%.0.o: $(ROOTSRCDIR)/bootloader/%.S
+	$(call run_command, $(CC32) -MD -c $< -o $@ $(CFLAGS16), "AS")
+
+%.0.o: $(ROOTSRCDIR)/bootloader/%.c
+	$(call run_command, $(CC32) -MD -c $< -o $@ $(CFLAGS16), "CC")
+
+%.0.o: $(ROOTSRCDIR)/bootloader/%.cpp
+	$(call run_command, $(CXX32) -MD -c $< -o $@ $(CXXFLAGS16), "CXX")
+
+
+# This target links, checks the size, and then injects the sector number into
+# stage1.bin, as the second uint16_t (first one is magic)
+stage1.bin: $(STAGE1_OBJS) $(STAGE1_LINKER) $(LIBS)
+	$(call run_command, $(LD32) -T $(STAGE1_LINKER) -o $@ $(STAGE1_OBJS) $(LIBS) $(LDFLAGS32), "LD")
+	@if test $$(ls -l stage1.bin | awk '{print $$5}') -gt 65024; then \
+	printf "$(RED)Error:$(NC) stage1.bin is way too big!\n"; \
+	rm stage1.bin; \
+	false; \
+	fi
+	@size=$$(ls -l stage1.bin | awk 'function ceil(x,y){y=int(x); return(x>y?y+1:y)} {print ceil($$5/512)}'); \
+	printf "%04x" "$$size" | xxd -r -p | dd of=stage1.bin bs=1 count=2 seek=2 conv=notrunc,sparse,swab
+
+
+%.1.o: $(ROOTSRCDIR)/bootloader/%.S
+	$(call run_command, $(CC32) -MD -c $< -o $@ $(CFLAGS32), "AS")
+
+%.1.o: $(ROOTSRCDIR)/bootloader/%.c
+	$(call run_command, $(CC32) -MD -c $< -o $@ $(CFLAGS32), "CC")
+
+%.1.o: $(ROOTSRCDIR)/bootloader/%.cpp
+	$(call run_command, $(CXX32) -MD -c $< -o $@ $(CXXFLAGS32), "CXX")
+
+clean:
+	-@rm -f stage0.bin
+	-@rm -f stage1.bin
+	-@rm -f $(shell find . -name '*.o')
+	-@rm -f $(shell find . -name '*.d')
+
+-include $(OBJS:.o=.d)

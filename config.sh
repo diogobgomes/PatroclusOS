@@ -288,11 +288,11 @@ fi
 subdirs='bootloader kernel init lib32 lib64'
 
 #destmakefile='Makefile bootloader/Makefile kernel/Makefile init/Makefile lib32/Makefile lib64/Makefile'
-destmakefile='Makefile kernel/Makefile init/Makefile lib32/Makefile lib64/Makefile'
+destmakefile='Makefile bootloader/Makefile kernel/Makefile init/Makefile lib32/Makefile lib64/Makefile'
 destmakefile=(${destmakefile})
 destmaketools="progs.mk" # File make will include with tool definitions
 
-srcmakefile="${rootsrcdir}/Makefile.in ${rootsrcdir}/kernel/Makefile.in ${rootsrcdir}/init/Makefile.in ${rootsrcdir}/lib/Makefile32.in ${rootsrcdir}/lib/Makefile64.in"
+srcmakefile="${rootsrcdir}/Makefile.in ${rootsrcdir}/bootloader/Makefile.in ${rootsrcdir}/kernel/Makefile.in ${rootsrcdir}/init/Makefile.in ${rootsrcdir}/lib/Makefile32.in ${rootsrcdir}/lib/Makefile64.in"
 srcmakefile=(${srcmakefile})
 srcmakeconfig=${rootsrcdir}/config/config.mk
 srcmakeoutput=${rootsrcdir}/config/output.mk
@@ -365,10 +365,17 @@ printf "AR:=${ar_prog}\n" >> ${destmaketools}
 printf "PYTHON:=${python_prog}\n" >> ${destmaketools}
 printf "GRUB_PROG:=${grub_prog}\n" >> ${destmaketools}
 printf "GRUB_PROG_CHECK:=${grub_prog_check}\n\n" >> ${destmaketools}
+printf "DISKIMAGE:=${diskimage}\n" >> ${destmaketools}
+printf "LOOPBACK:=${loopback}\n\n" >> ${destmaketools}
 
 printf "${GREEN}OK${NC}\n"
 
 # TODO create diskimage
+print_log "Checking whether we need to generate ${diskimage}...\n"
+if ! ${rootsrcdir}/tools/build-scripts/setup-diskimage.sh ${diskimage} ${rootsrcdir} ${loopback}; then
+    print_log "\nError: Could not generate diskimage\n"
+    exit 5
+fi
 
 # ------------------------------------------------------------------------------
 # Copy .gdbinit, create gdb_history

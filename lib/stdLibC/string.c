@@ -59,3 +59,28 @@ void* memmove(void* dstptr, const void* srcptr, size_t size) {
 	}
 	return dstptr;
 }
+
+int strcmp(const char* str1, const char* str2)
+{
+	size_t i = 0;
+	for ( ; str1[i] != '\0' && str2[i] != '\0'; i++)
+	{
+		if (str1[i] != str2[i])
+		{
+			return str1[i] - str2[i];
+		}
+	}
+
+	return str1[i] - str2[i];	
+}
+
+char* strcpy(char* dest, const char* src)
+{
+	size_t i = 0;
+	do
+	{
+		dest[i] = src[i];
+	} while (src[i++] != '\0');
+	
+	return dest;
+}

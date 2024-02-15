@@ -28,7 +28,7 @@ CXXFLAGS32:=$(CXXFLAGS32) -D__init__
 all: init.bin
 
 # Careful here, -lgcc must be positioned as the last linked library (for some idiotic reason)
-init.bin: $(OBJS) $(LINKER)
+init.bin: $(OBJS) $(LINKER) $(LIBS)
 	$(call run_command, $(LD32) -T $(LINKER) -o $@ $(OBJS) $(LIBS) $(CXXFLAGS32) $(LDFLAGS32), "LD")
 
 %.o: $(ROOTSRCDIR)/init/%.S

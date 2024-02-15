@@ -28,7 +28,7 @@ CXXFLAGS64:=$(CXXFLAGS64) -D__kernel__
 all: kernel.bin
 
 # Careful here, -lgcc must be positioned as the last linked library (for some idiotic reason)
-kernel.bin: $(OBJS) $(LINKER)
+kernel.bin: $(OBJS) $(LINKER) $(LIBS)
 	$(call run_command, $(LD64) -T $(LINKER) -o $@ $(OBJS) $(LIBS) $(CXXFLAGS64) $(LDFLAGS64), "LD")
 
 %.o: $(ROOTSRCDIR)/kernel/%.S

@@ -8,5 +8,5 @@
 OBJS:=basic_io.o \
     string.o \
     abort.o \
-    framebuffer_io.o
+    BIOSVideoIO.o
 	

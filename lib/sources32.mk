@@ -5,5 +5,14 @@
 #
 # 2024 Diogo Gomes
 
-OBJS:=framebuffer_io.o \
-string.o
+OBJS:=string.o \
+cstdlib.o \
+memory.o \
+diskRead16.o \
+fat32.o \
+memoryDetection16.o \
+BIOSVideoIO.o \
+realModeCall.o \
+asmCall_int13.o \
+asmCall_int12.o \
+asmCall_int15.o

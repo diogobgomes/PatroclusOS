@@ -9,6 +9,7 @@
  * 
  */
 
+// BUG Get rid of basic_io.h here
 #include <klib/basic_io.h>
 #include <klib/stdlib.h>
  
