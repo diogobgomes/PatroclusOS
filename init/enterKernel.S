@@ -13,7 +13,8 @@ enterKernel:
     # Get arguments
     pop %eax # Discard, return value not needed
     pop %edx # Kentry
-    pop %esi # Multiboot info
+    pop %edi # Multiboot info
+    pop %esi # tIndex
 
     #mov %edx, (k_ptr)
 
@@ -32,11 +33,7 @@ enter_64:
     mov %ax, %fs
     mov %ax, %gs
 
-    xchgw %bx, %bx
-
     # Jump to kernel!
-    #mov (k_ptr), %eax
-    #.long 0xffffffff
     jmp *%edx
 
 # Should never get here

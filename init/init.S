@@ -53,6 +53,7 @@ _start:
     # (grub does this, and I pinky promise my own implementation also will)
 
     # Push variables to the stack
+    push %edx # Terminal index
     push %ebx # Multiboot info
     push %eax # Multiboot flag, for checking
 

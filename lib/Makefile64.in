@@ -1,5 +1,5 @@
 #@START_HEADER
-# LIB32 MAKEFILE - v0.2
+# LIB64 MAKEFILE - v0.2
 #
 # Not ready to be used as Makefile, this is a template, that is used by config.sh
 # to write the final Makefile. If you haven't already, run the config.sh script!
@@ -20,8 +20,8 @@ include ../progs.mk
 
 include $(ROOTSRCDIR)/lib/sources64.mk
 
-CFLAGS64:=$(CFLAGS32) -D__lib64__
-CXXFLAGS64:=$(CXXFLAGS32) -D__lib64__
+CFLAGS64:=$(CFLAGS64) -D__lib64__
+CXXFLAGS64:=$(CXXFLAGS64) -D__lib64__
 
 SUBDIRS:=$(shell find $(ROOTSRCDIR)/lib -type d)
 

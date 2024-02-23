@@ -26,11 +26,8 @@ _start:
     mov %rbx, %rsp
     mov %rbx, %rbp
 
-    # FIXME Remove from final
-    mov $0xb8000, %rdi
-    mov $0x1F201F201F201F20, %rax
-    mov $500, %ecx
-    rep stosq
+    # Parameters are already stored in the correct registers by init
+    # Weird x86_64 calling convention
 
     call kmain
 

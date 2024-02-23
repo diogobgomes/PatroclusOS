@@ -9,8 +9,8 @@
 # 2023 Diogo Gomes
 
 # Setup basic flags
-CFLAGS_COMMON+= -g -O0 -ffreestanding
-CXXFLAGS_COMMON+= -g -O0 -ffreestanding -fno-exceptions
+CFLAGS_COMMON+= -g -O0 -ffreestanding -std=c2x
+CXXFLAGS_COMMON+= -g -O0 -ffreestanding -fno-exceptions -std=gnu++17
 LDFLAGS_COMMON+= -nostdlib -lgcc -nostartfiles
 
 # Command line variables
@@ -42,7 +42,7 @@ CXXFLAGS32:=$(CXXFLAGS32) -D__is32__
 LDFLAGS32:=$(LDFLAGS32) -D__is32__
 CFLAGS64:=$(CFLAGS64) -D__is64__ -mcmodel=kernel -no-pie
 CXXFLAGS64:=$(CXXFLAGS64) -D__is64__ -mcmodel=kernel -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -no-pie
-LDFLAGS64:=$(LDFLAGS64) -D__is64__ -mcmodel=kernel -no-pie
+LDFLAGS64:=$(LDFLAGS64) -D__is64__ -mcmodel=kernel -z max-page-size=0x1000 -no-pie
 CFLAGS16:=$(CFLAGS16) -D__is16__ -m16 -march=i386
 CXXFLAGS16:=$(CXXFLAGS16) -D__is16__ -m16 -march=i386
 #LDFLAGS16:=$(LDFLAGS16) -m16 -march=i386

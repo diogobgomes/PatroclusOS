@@ -5,8 +5,8 @@
 #
 # 2024 Diogo Gomes
 
-OBJS:=basic_io.o \
-    string.o \
-    abort.o \
-    BIOSVideoIO.o
+OBJS:=string.o \
+    BIOSVideoIO.o \
+    cstdlib.o \
+    abort.o 
 	

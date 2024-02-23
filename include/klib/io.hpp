@@ -101,6 +101,11 @@ public:
         return *this;
     }
 
+    template<typename T> auto &operator<<(T* ptr) {
+        writeNum(reinterpret_cast<uint64_t>(ptr));
+        return *this;
+    }
+
     auto &hex() { _base=16; return *this;}
 
     auto &dec() { _base=10; return *this;}

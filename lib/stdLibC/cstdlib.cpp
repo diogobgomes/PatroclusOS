@@ -23,18 +23,6 @@
 
     out << "earlyPanic(): ";
 
-    // TODO When we add BIOS color, add definition for 16 bit
-    out << str;
-    hang();
-}
-
-
-
-
-[[noreturn,maybe_unused]] void error(const char* str)
-{
-    
-    
     out << str;
     hang();
 }

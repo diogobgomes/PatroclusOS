@@ -115,7 +115,7 @@ jumpInit:
     mov (%di), %edx # Terminal index
 
     # Prepare multiboot
-    mov $0x2BADB002, %eax # FIXME Change this to our own thing
+    mov $0x2BADB003, %eax # FIXME Change this to our own thing
 
     # We're frankly ready to jump, so let's go
     jmp *%ecx

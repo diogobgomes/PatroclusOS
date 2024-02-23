@@ -9,15 +9,13 @@
  * 
  */
 
-// BUG Get rid of basic_io.h here
-#include <klib/basic_io.h>
 #include <klib/stdlib.h>
  
 __attribute__((__noreturn__))
 void abort(void) {
 	// TODO: Add proper kernel panic.
-	bprintf("kernel: panic: abort()\n");
-    asm volatile("cli;"
+	earlyPanic("kernel: panic: abort()");
+    __asm__ __volatile__("cli;"
                  "hlt;");
 
 	while (1) { }

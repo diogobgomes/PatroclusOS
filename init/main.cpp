@@ -22,34 +22,92 @@
 #include "elfLoader.hpp"
 #include "paging.h"
 
-// Declarations
+/*******************************************************************************
+ * 
+ * DECLARATIONS
+ * 
+*******************************************************************************/
 extern "C" {
-    [[noreturn]] void lmain( void* pagingArea, uint32_t multiboot_flag, const struct multiboot_info_structure* info );
-    [[noreturn,maybe_unused]] void error(const char* errStr);
-    [[noreturn,maybe_unused]] void hang();
+    [[noreturn]] void lmain( void* pagingArea, uint32_t multiboot_flag,
+            const struct multiboot_info_structure* info, uint32_t terminalIndex );
+//    [[noreturn,maybe_unused]] void error(const char* errStr);
+//    [[noreturn,maybe_unused]] void hang();
+    uint32_t checkCPUID();
+    [[noreturn]] void enterKernel(void* entry,
+        const multiboot_info_structure* multiboot_info, uint32_t terminalIndex);
 }
 
-// Assembly functions
-extern "C" uint32_t checkCPUID();
-//extern "C" uint32_t setupPaging();
-extern "C" [[noreturn]] void enterKernel(void* entry, const struct multiboot_info_structure* multiboot_info);
-
-// Internal functions
-// This one checks that we were correctly loaded by multiboot, reads info, and
-// returns the multiboot module that's actually the kernel
-void* multibootStuff(const struct multiboot_info_structure* info, uint32_t multiboot_flag);
-// This one loads the ELF module
-void* doElfLoad(void* mods_addr);
-
-//static framebuffer_io::framebuffer_terminal terminal;
+// Variables
 io::_outstream<io::framebuffer_terminal> out;
 
-void lmain( void* pagingArea, uint32_t multiboot_flag, const struct multiboot_info_structure* info )
+// Internal functions
+// This one loads the ELF module
+void* doElfLoad(void* mods_addr);
+// Check that we've been loaded by a "multiboot" bootloader
+void checkMultiboot(uint32_t multiboot_flag);
+// Get the module address
+void* getMultibootModuleAddr(const multiboot_info_structure* info);
+
+void checkMultiboot(uint32_t multiboot_flag)
+{
+    if (multiboot_flag != MULTIBOOT_BOOTLOADER_MAGIC &&
+            multiboot_flag != MULTIBOOT_CUSTOM_BOOTLOADER_MAGIC)
+    {
+        earlyPanic("We weren't loaded by a compatible multiboot bootloader, bailing!");
+    }
+}
+
+void* getMultibootModuleAddr(const multiboot_info_structure* info)
+{
+    // Start searching for modules
+    uint32_t mb_flags = info->flags;
+
+    if (!(mb_flags & MULTIBOOT_INFO_MODS))
+    {
+        earlyPanic("Whoops, there's no multiboot modules, you sure you configured this correctly?");
+    }
+
+    uint32_t mods_count = info->mods_count;
+    if (mods_count != 1) // We expect 1 and only one module
+    {
+        earlyPanic("Hold on there, we only need one module! I don't know how to deal with this number");
+    }
+    auto mod = reinterpret_cast<multiboot_mod_list*>(info->mods_addr);
+
+    void* mods_addr = reinterpret_cast<void*>(mod->mod_start);
+
+    // Check the command line for the expected string
+    if (!strcmp(reinterpret_cast<char*>(info->cmdline),"PATROCLUS_KERNEL"))
+    {
+        earlyPanic("I don't know what this module is, but it isn't what I wanted!");
+    }
+
+    out.hex();
+
+    out << "kernel.bin is at 0x" << mods_addr << "\n";
+
+    return mods_addr;
+}
+
+void lmain( void* pagingArea, uint32_t multiboot_flag,
+        const struct multiboot_info_structure* info, uint32_t terminalIndex )
 {
     // Initiate the terminal
     io::framebuffer_terminal initTerminal;
     out.init(&initTerminal);
-    out.clear();
+    out.hex();
+    
+    // Test to see if we were booted from custom bootloader
+    if (multiboot_flag == MULTIBOOT_CUSTOM_BOOTLOADER_MAGIC)
+    {
+        uint8_t _row = uint8_t(terminalIndex / initTerminal.vga_width);
+        uint8_t _column = uint8_t( terminalIndex - _row * initTerminal.vga_width );
+        initTerminal.setCursor(_row,_column);
+    }
+    else // Not loaded by custom bootloader, clear the screen
+    {
+        initTerminal.clear();
+    }
 
     // Print header
     initTerminal.setColor(io::vga_color::VGA_COLOR_LIGHT_GREY,
@@ -58,11 +116,10 @@ void lmain( void* pagingArea, uint32_t multiboot_flag, const struct multiboot_in
     initTerminal.setColor(io::vga_color::VGA_COLOR_LIGHT_GREY,
                             io::vga_color::VGA_COLOR_BLACK);
 
-    // Get the module address from multiboot_info_structure
-    void* mods_addr = multibootStuff(info,multiboot_flag);
-
-    out.hex();
-    out << "mods_addr is at " << reinterpret_cast<uint32_t>(mods_addr) << "\n";
+    // MULTIBOOT STUFF
+    checkMultiboot(multiboot_flag); // Check flag
+    void* mods_addr = getMultibootModuleAddr(info);
+    out << "mods_addr is at 0x" << mods_addr << "\n";
     
     // Do the ELF loading
     void* kentry = doElfLoad(mods_addr);
@@ -72,11 +129,11 @@ void lmain( void* pagingArea, uint32_t multiboot_flag, const struct multiboot_in
 
     if (cpuidResult == 1)
     {
-        error("Error: CPUID not supported");
+        earlyPanic("Error: CPUID not supported");
     }
     else if (cpuidResult == 2)
     {
-        error("Error: Long mode not supported");
+        earlyPanic("Error: Long mode not supported");
     }
     
     // Now, attempting to enable paging
@@ -87,82 +144,33 @@ void lmain( void* pagingArea, uint32_t multiboot_flag, const struct multiboot_in
     out << " apparently, it went ok?\n";
 
     // Paging went ok, so now jump to kernel
-    out << "Jumping to kernel. Entry point: 0x" 
-          << reinterpret_cast<uint64_t>(kentry);
+    out << "Jumping to kernel. Entry point: 0x" << kentry;
 
-    out << ", mbinfo is at: 0x" << reinterpret_cast<uint64_t>(info) << "\n";
+    out << ", mbinfo is at: 0x" << info << "\n";
 
-    enterKernel(kentry,info);
+    uint32_t tIndex = initTerminal.getRow() * initTerminal.vga_width
+            + initTerminal.getColumn();
 
-    error("\nShouldn't be seeing this!!!");
+    enterKernel(kentry,info,tIndex);
+
+    earlyPanic("Shouldn't be seeing this!!!");
 
 }
 
-//[[noreturn,maybe_unused]] void hang()
-//{
-//    while(true)
-//    __asm__ __volatile__ (  "xchgw %bx, %bx\r\n"
-//                            "cli\r\n"
-//                            "hlt");
-//}
-
-// BUG Change this to earlyPanic()
-[[noreturn,maybe_unused]] void error(const char* str)
-{
-    io::framebuffer_terminal* termPtr = out.getBackEnd();
-    termPtr->setColor(io::vga_color::VGA_COLOR_LIGHT_GREY,
-                        io::vga_color::VGA_COLOR_RED);
-    
-    out << str;
-    hang();
-}
-
-void* multibootStuff(const struct multiboot_info_structure* info, uint32_t multiboot_flag)
-{
-    // First of all, check multiboot_flag
-    if (multiboot_flag != MULTIBOOT_BOOTLOADER_MAGIC)
-    {
-        error("Error: Wasn't loaded by multiboot, aborting!\n");
-    }
-
-
-    // Start searching for modules
-    uint32_t mb_flags = info->flags;
-
-    if (!(mb_flags & MULTIBOOT_INFO_MODS))
-    {
-        error("Error: No multiboot modules!\n");
-    }
-
-    uint32_t mods_count = info->mods_count;
-    if (mods_count != 1) // We expect 1, and only 1, module
-    {
-        error("Error: Incorrect number of modules, we only expect 1!");
-    }
-    multiboot_module_t* mod = reinterpret_cast<multiboot_module_t*>(info->mods_addr);
-
-    void* mods_addr = reinterpret_cast<void*>(mod->mod_start);
-
-    // TODO parse the command line, need a strcmp implementation
-
-    out << "kernel.bin is at 0x" << out.hex() <<
-            reinterpret_cast<uint64_t>(mods_addr) << "\n";
-    
-    return mods_addr;
-}
 
 void* doElfLoad(void* mods_addr)
 {
+    // FIXME Don't know if this should be a class, actually
     elf64Loader elfLoader(reinterpret_cast<elf64_Ehdr*>(mods_addr));
 
     if (!elfLoader.checkHeader())
     {
-        error("Error: ELF64 header is invalid or we don't support it!");
+        earlyPanic("Error: ELF64 header is invalid or we don't support it!");
     }
 
     if (!elfLoader.elf_load())
     {
-        error("Error: Couldn't load ELF64 binary kernel.bin");
+        earlyPanic("Error: Couldn't load ELF64 binary kernel.bin");
     }
 
     // This is successful

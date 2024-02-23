@@ -23,7 +23,7 @@ extern "C" {
 #include <stddef.h>
 #include <sys/multiboot.h>
 
-void kmain(uint32_t multibootMagic, multiboot_info_structure* multibootInfo);
+void kmain(uint64_t multibootInfo, uint64_t terminalIndex);
 
 #ifdef __cplusplus
 }

@@ -178,6 +178,9 @@ struct mmap_structure_entry_write
 /* Multiboot header magic, should be in %eax */
 #define MULTIBOOT_BOOTLOADER_MAGIC              0x2BADB002
 
+/* Multiboot header magic, should be in %eax, and indicates we were loaded by the custom bootloader */
+#define MULTIBOOT_CUSTOM_BOOTLOADER_MAGIC       0x2BADB003
+
 /* is there basic lower/upper memory information? */
 #define MULTIBOOT_INFO_MEMORY                   0x00000001
 /* is there a boot device set? */
