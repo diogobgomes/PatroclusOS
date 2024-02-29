@@ -12,7 +12,7 @@
 .align 16
 stack_bottom:
 #.skip 16384 # 16 KiB
-.skip 64
+.skip 16384
 stack_top:
 
 # Kernel entry point

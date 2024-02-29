@@ -7,7 +7,9 @@
 
 OBJS:=boot.o \
 kernel.o \
-entry.o
+entry.o \
+interrupts.o \
+interruptHandler.o
 
 LINKER:=$(ROOTSRCDIR)/kernel/kernel.ld
 
