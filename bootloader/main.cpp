@@ -255,7 +255,13 @@ void _stage1Main( uint32_t dx, uint32_t __stop_stage1, uint32_t cursor)
     fs::fat32 activePartition((&diskReadFunc));
     activePartition.init(activePartitionLBA);
 
+    #ifdef TRACEMAX
+        traceOut << "Reading INIT.BIN\n";
+    #endif
     fs::fat32_fileResult* initFile = activePartition.getRootFile("INIT.BIN");
+    #ifdef TRACEMAX
+        traceOut << "Reading KERNEL.BIN\n";
+    #endif
     fs::fat32_fileResult* kernelFile = activePartition.getRootFile("KERNEL.BIN");
 
     #ifdef TRACEMAX

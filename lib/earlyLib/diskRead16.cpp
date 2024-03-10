@@ -16,6 +16,7 @@
 #include <klib/string.h>
 #include <earlyLib/realMode.hpp>
 #include <klib/cstdlib.hpp>
+#include <klib/tracemax.hpp>
 
 static io::DAP *dap = reinterpret_cast<io::DAP*>(_dap_memory_location);
 static constexpr uint32_t readBuffer = _disk_read_location;
@@ -36,7 +37,7 @@ static void _fillDAP(uint32_t LBA, size_t sectors)
 
 bool io::diskRead16(uint32_t LBA, void* buffer, size_t sectors, uint16_t disk)
 {
-    size_t iterations = sectors / MAX_SECTORS;
+    const size_t iterations = sectors / MAX_SECTORS;
     void* currentBuffer = buffer;
     uint32_t currentLBA = LBA;
 

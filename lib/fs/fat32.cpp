@@ -18,6 +18,7 @@
 
 #ifdef TRACEMAX
     #include <klib/tracemax.hpp>
+    #include <klib/io.hpp>
 #endif
 
 // Mask to apply to clusters
@@ -190,6 +191,22 @@ const char* fs::fat32::nameFromEntry( fs::fat32_dirEntry* ptr )
     return fileName;
 }
 
+static inline bool isClusterEnd(size_t clusterNum)
+{
+    // TODO we should check also for too high cluster num, as that also signifies
+    // EOF
+
+    // Mask out unnecessary part of clusterNum
+    clusterNum = clusterNum & 0xFFFFFFF;
+
+    if (clusterNum >= 0xFFFFFF8 && clusterNum <= 0xFFFFFFF)
+    {
+        return true;
+    }
+    
+    return false;
+}
+
 
 fs::fat32_fileResult* fs::fat32::getRootFile(const char* file)
 {
@@ -227,19 +244,21 @@ fs::fat32_fileResult* fs::fat32::getRootFile(const char* file)
             // Final file buffer
             uint8_t* buffer = new uint8_t[numSectors * sectorSize];
 
-            // FIXME Works for now, but we should really follow the cluster chain
-            for (size_t j = 0; j < numSectors; j++)
+            size_t j = 0;
+            while (! isClusterEnd(clusterNum))
             {
-                const size_t currLBA = ((clusterNum-2) * _vbr->bpd.sectorsPerCluster +
+                const size_t currLBA = ((clusterNum-2) * _vbr->bpd.sectorsPerCluster + 
                         firstDataSector + _partitionLBA);
                 const size_t offset = j * sectorSize;
-                if (! (*_diskReadFunc)(currLBA,buffer + offset,1))
+
+                if(! (*_diskReadFunc)(currLBA,buffer + offset,1))
                 {
                     earlyPanic("getRootFile(): Failure on read!");
                 }
 
-                // Increment cluster, clusterNum
+                // Increment
                 clusterNum = _FATptr[clusterNum] & clusterMask;
+                j++;
             }
 
             // Fill up the return struct
